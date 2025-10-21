@@ -1,0 +1,762 @@
+{
+  "system_metadata": {
+    "timestamp": "2025-10-21T11:55:33.102897",
+    "data_source": "Synthetic Demo",
+    "patients_analyzed": 5,
+    "diseases_modeled": [
+      "sepsis",
+      "kidney_failure",
+      "cardiovascular",
+      "mortality"
+    ],
+    "features_used": [
+      "age",
+      "gender_encoded",
+      "admission_type_encoded",
+      "ethnicity_encoded",
+      "insurance_encoded",
+      "heart_rate",
+      "systolic_bp",
+      "temperature",
+      "glucose",
+      "creatinine",
+      "hemoglobin",
+      "white_blood_cells",
+      "platelet_count"
+    ]
+  },
+  "model_performance": {
+    "sepsis": {
+      "auc": 0.7110955592314544,
+      "accuracy": 0.8966666666666666,
+      "f1_score": 0.0,
+      "prevalence": 0.098
+    },
+    "kidney_failure": {
+      "auc": 0.8067195961932804,
+      "accuracy": 0.76,
+      "f1_score": 0.4857142857142857,
+      "prevalence": 0.303
+    },
+    "cardiovascular": {
+      "auc": 0.7060381355932204,
+      "accuracy": 0.81,
+      "f1_score": 0.37362637362637363,
+      "prevalence": 0.212
+    },
+    "mortality": {
+      "auc": 0.5078538359788359,
+      "accuracy": 0.8433333333333334,
+      "f1_score": 0.04081632653061224,
+      "prevalence": 0.159
+    }
+  },
+  "patient_analysis": {
+    "total_patients": 5,
+    "risk_distribution": {
+      "CRITICAL": 0,
+      "HIGH": 1,
+      "MODERATE": 1,
+      "LOW": 3
+    },
+    "critical_alerts": 0,
+    "high_risk_interventions": 1
+  },
+  "patient_reports": [
+    {
+      "patient_id": 0,
+      "timestamp": "2025-10-21T11:55:30.618833",
+      "diseases": {
+        "sepsis": {
+          "risk_score": 0.03,
+          "risk_category": "LOW RISK",
+          "actual_outcome": false,
+          "description": "Sepsis and Septic Shock",
+          "shap_top_factors": [],
+          "lime_explanation": [
+            [
+              "temperature <= -0.71",
+              -0.06184998237151384
+            ],
+            [
+              "white_blood_cells <= -0.91",
+              -0.03609411070389456
+            ],
+            [
+              "heart_rate <= -0.77",
+              -0.01829341932475852
+            ],
+            [
+              "hemoglobin <= -0.74",
+              -0.015002791384254265
+            ],
+            [
+              "platelet_count > 0.63",
+              -0.013485268493300262
+            ]
+          ]
+        },
+        "kidney_failure": {
+          "risk_score": 0.8121438347126133,
+          "risk_category": "HIGH RISK",
+          "actual_outcome": true,
+          "description": "Acute Kidney Injury",
+          "shap_top_factors": [],
+          "lime_explanation": [
+            [
+              "creatinine > 0.75",
+              0.25324163596347476
+            ],
+            [
+              "age > 0.57",
+              0.1876971039320484
+            ],
+            [
+              "systolic_bp > 0.87",
+              0.16142487170818823
+            ],
+            [
+              "glucose > 0.91",
+              -0.02414875353352024
+            ],
+            [
+              "0.12 < temperature <= 0.63",
+              -0.014611049654514027
+            ]
+          ]
+        },
+        "cardiovascular": {
+          "risk_score": 0.10699786858126738,
+          "risk_category": "LOW RISK",
+          "actual_outcome": true,
+          "description": "Cardiovascular Events",
+          "shap_top_factors": [],
+          "lime_explanation": [
+            [
+              "0.18 < age <= 0.93",
+              0.11164308538220477
+            ],
+            [
+              "0.02 < systolic_bp <= 0.56",
+              -0.060529127080179636
+            ],
+            [
+              "platelet_count > 0.76",
+              0.0534134950409705
+            ],
+            [
+              "white_blood_cells > 0.78",
+              -0.044030430634690476
+            ],
+            [
+              "-0.79 < glucose <= -0.10",
+              -0.0431234214921294
+            ]
+          ]
+        },
+        "mortality": {
+          "risk_score": 0.3550319062146632,
+          "risk_category": "LOW RISK",
+          "actual_outcome": false,
+          "description": "In-Hospital Mortality",
+          "shap_top_factors": [],
+          "lime_explanation": [
+            [
+              "-0.85 < platelet_count <= -0.07",
+              0.03914930451602595
+            ],
+            [
+              "age > 0.38",
+              -0.034583273206065
+            ],
+            [
+              "creatinine <= -1.02",
+              0.03453462852119584
+            ],
+            [
+              "0.15 < heart_rate <= 0.77",
+              0.03065131278252861
+            ],
+            [
+              "hemoglobin <= -0.77",
+              0.02163923151316404
+            ]
+          ]
+        }
+      },
+      "overall_risk_score": 0.32604340237713597,
+      "risk_category": "HIGH",
+      "clinical_summary": {
+        "age": 72.94821044579967,
+        "heart_rate": 92.32181643880108,
+        "blood_pressure": 107.41454418452172,
+        "temperature": 99.0787501647174,
+        "glucose": 175.94049421806852,
+        "creatinine": 1.1999441161966966
+      },
+      "recommendations": [
+        "\ud83e\uded8 HIGH KIDNEY FAILURE RISK - Nephrology consultation",
+        "\ud83e\uddea Monitor: Creatinine, BUN, electrolytes",
+        "\ud83d\udca7 Assess: Fluid balance and medication nephrotoxicity",
+        "\ud83d\udcca Track: Urine output and kidney function trends"
+      ]
+    },
+    {
+      "patient_id": 1,
+      "timestamp": "2025-10-21T11:55:31.119557",
+      "diseases": {
+        "sepsis": {
+          "risk_score": 0.008205461638491547,
+          "risk_category": "LOW RISK",
+          "actual_outcome": false,
+          "description": "Sepsis and Septic Shock",
+          "shap_top_factors": [],
+          "lime_explanation": [
+            [
+              "temperature <= -0.71",
+              -0.057263895659530224
+            ],
+            [
+              "age <= -0.94",
+              -0.0328413772168005
+            ],
+            [
+              "glucose <= -0.54",
+              -0.029085333121008566
+            ],
+            [
+              "creatinine > 0.60",
+              -0.0259753169271666
+            ],
+            [
+              "hemoglobin > 0.54",
+              0.018848895763126386
+            ]
+          ]
+        },
+        "kidney_failure": {
+          "risk_score": 0.3486140604695755,
+          "risk_category": "LOW RISK",
+          "actual_outcome": false,
+          "description": "Acute Kidney Injury",
+          "shap_top_factors": [],
+          "lime_explanation": [
+            [
+              "age > 0.57",
+              0.1878069377468969
+            ],
+            [
+              "-0.88 < creatinine <= -0.18",
+              -0.13712622985581302
+            ],
+            [
+              "systolic_bp <= -0.83",
+              -0.06651144078495093
+            ],
+            [
+              "-0.93 < glucose <= 0.08",
+              0.02193811829808223
+            ],
+            [
+              "-0.21 < platelet_count <= 0.59",
+              0.018032172568766318
+            ]
+          ]
+        },
+        "cardiovascular": {
+          "risk_score": 0.14028260909122295,
+          "risk_category": "LOW RISK",
+          "actual_outcome": false,
+          "description": "Cardiovascular Events",
+          "shap_top_factors": [],
+          "lime_explanation": [
+            [
+              "systolic_bp > 0.56",
+              0.23938373381648945
+            ],
+            [
+              "-0.55 < age <= 0.18",
+              -0.1185173386623215
+            ],
+            [
+              "platelet_count > 0.76",
+              0.05934004026842183
+            ],
+            [
+              "glucose > 0.66",
+              0.04855298235596436
+            ],
+            [
+              "temperature <= -0.81",
+              -0.02650667855059562
+            ]
+          ]
+        },
+        "mortality": {
+          "risk_score": 0.13674036092641828,
+          "risk_category": "LOW RISK",
+          "actual_outcome": false,
+          "description": "In-Hospital Mortality",
+          "shap_top_factors": [],
+          "lime_explanation": [
+            [
+              "heart_rate <= -0.66",
+              -0.06273778583626718
+            ],
+            [
+              "temperature > 0.46",
+              -0.045632698106177684
+            ],
+            [
+              "age > 0.38",
+              -0.03838210274665076
+            ],
+            [
+              "platelet_count > 0.56",
+              -0.03042447712501012
+            ],
+            [
+              "-1.29 < insurance_encoded <= -0.04",
+              0.02534065757434627
+            ]
+          ]
+        }
+      },
+      "overall_risk_score": 0.15846062303142708,
+      "risk_category": "LOW",
+      "clinical_summary": {
+        "age": 71.18351809785068,
+        "heart_rate": 80.68424643982316,
+        "blood_pressure": 128.74882155331173,
+        "temperature": 98.89350846145295,
+        "glucose": 104.02399855357812,
+        "creatinine": 2.097341055451496
+      },
+      "recommendations": [
+        "\u2705 LOW RISK - Standard care protocols appropriate",
+        "\ud83d\udccb Routine monitoring and standard treatment plans",
+        "\ud83c\udfe5 Continue current care pathway",
+        "\ud83d\udcc5 Regular scheduled assessments"
+      ]
+    },
+    {
+      "patient_id": 2,
+      "timestamp": "2025-10-21T11:55:31.608385",
+      "diseases": {
+        "sepsis": {
+          "risk_score": 0.04955233564013841,
+          "risk_category": "LOW RISK",
+          "actual_outcome": false,
+          "description": "Sepsis and Septic Shock",
+          "shap_top_factors": [],
+          "lime_explanation": [
+            [
+              "temperature > 0.87",
+              0.1468504636605482
+            ],
+            [
+              "age <= -0.94",
+              -0.032423932697500615
+            ],
+            [
+              "creatinine > 0.60",
+              -0.027861068361991287
+            ],
+            [
+              "-0.91 < white_blood_cells <= -0.29",
+              -0.027443624067981495
+            ],
+            [
+              "-0.19 < hemoglobin <= 0.54",
+              0.01521419168851343
+            ]
+          ]
+        },
+        "kidney_failure": {
+          "risk_score": 0.22144877098602844,
+          "risk_category": "LOW RISK",
+          "actual_outcome": true,
+          "description": "Acute Kidney Injury",
+          "shap_top_factors": [],
+          "lime_explanation": [
+            [
+              "-0.18 < creatinine <= 0.75",
+              0.06399490993386928
+            ],
+            [
+              "-0.83 < systolic_bp <= -0.06",
+              -0.05133929445888275
+            ],
+            [
+              "-0.93 < glucose <= 0.08",
+              0.022986555336019742
+            ],
+            [
+              "-0.76 < platelet_count <= -0.21",
+              -0.0156755035404758
+            ],
+            [
+              "admission_type_encoded <= -1.23",
+              0.010739230135151186
+            ]
+          ]
+        },
+        "cardiovascular": {
+          "risk_score": 0.4089240673261868,
+          "risk_category": "MODERATE RISK",
+          "actual_outcome": true,
+          "description": "Cardiovascular Events",
+          "shap_top_factors": [],
+          "lime_explanation": [
+            [
+              "systolic_bp > 0.56",
+              0.23648564148991622
+            ],
+            [
+              "age > 0.93",
+              0.11501976653948731
+            ],
+            [
+              "-0.06 < hemoglobin <= 0.70",
+              0.029235219051132754
+            ],
+            [
+              "creatinine <= -0.72",
+              -0.026461791550144012
+            ],
+            [
+              "heart_rate <= -0.69",
+              0.025211107043939248
+            ]
+          ]
+        },
+        "mortality": {
+          "risk_score": 0.25592271892792146,
+          "risk_category": "LOW RISK",
+          "actual_outcome": false,
+          "description": "In-Hospital Mortality",
+          "shap_top_factors": [],
+          "lime_explanation": [
+            [
+              "creatinine > 0.54",
+              -0.04974015211818169
+            ],
+            [
+              "temperature > 0.46",
+              -0.043641546329652746
+            ],
+            [
+              "age > 0.38",
+              -0.03646149723922591
+            ],
+            [
+              "-1.29 < insurance_encoded <= -0.04",
+              0.02018707271286555
+            ],
+            [
+              "white_blood_cells <= -0.82",
+              -0.018904428100143356
+            ]
+          ]
+        }
+      },
+      "overall_risk_score": 0.2339619732200688,
+      "risk_category": "LOW",
+      "clinical_summary": {
+        "age": 88.8374662887189,
+        "heart_rate": 86.97203196247966,
+        "blood_pressure": 112.73918453181095,
+        "temperature": 100.55419989577963,
+        "glucose": 156.57342390592103,
+        "creatinine": 0.9023377914391084
+      },
+      "recommendations": [
+        "\u2705 LOW RISK - Standard care protocols appropriate",
+        "\ud83d\udccb Routine monitoring and standard treatment plans",
+        "\ud83c\udfe5 Continue current care pathway",
+        "\ud83d\udcc5 Regular scheduled assessments"
+      ]
+    },
+    {
+      "patient_id": 3,
+      "timestamp": "2025-10-21T11:55:32.110245",
+      "diseases": {
+        "sepsis": {
+          "risk_score": 0.08380196009173987,
+          "risk_category": "LOW RISK",
+          "actual_outcome": false,
+          "description": "Sepsis and Septic Shock",
+          "shap_top_factors": [],
+          "lime_explanation": [
+            [
+              "age > 0.55",
+              0.08170681521510866
+            ],
+            [
+              "white_blood_cells > 0.62",
+              0.06421310863644193
+            ],
+            [
+              "0.11 < temperature <= 0.87",
+              -0.03862093966521775
+            ],
+            [
+              "creatinine > 0.60",
+              -0.0332785408293995
+            ],
+            [
+              "-0.74 < hemoglobin <= -0.19",
+              -0.022892082332674167
+            ]
+          ]
+        },
+        "kidney_failure": {
+          "risk_score": 0.07105946857210259,
+          "risk_category": "LOW RISK",
+          "actual_outcome": false,
+          "description": "Acute Kidney Injury",
+          "shap_top_factors": [],
+          "lime_explanation": [
+            [
+              "creatinine <= -0.88",
+              -0.17448114720238506
+            ],
+            [
+              "-0.42 < age <= 0.01",
+              -0.09281190066992911
+            ],
+            [
+              "systolic_bp <= -0.83",
+              -0.06750612778838158
+            ],
+            [
+              "temperature > 0.63",
+              0.021748055943518432
+            ],
+            [
+              "-0.05 < insurance_encoded <= 1.21",
+              -0.013685633784092618
+            ]
+          ]
+        },
+        "cardiovascular": {
+          "risk_score": 0.25042520776197635,
+          "risk_category": "LOW RISK",
+          "actual_outcome": false,
+          "description": "Cardiovascular Events",
+          "shap_top_factors": [],
+          "lime_explanation": [
+            [
+              "0.18 < age <= 0.93",
+              0.12501041098885013
+            ],
+            [
+              "-0.67 < systolic_bp <= 0.02",
+              -0.09119262137742538
+            ],
+            [
+              "glucose <= -0.79",
+              -0.040310239573513325
+            ],
+            [
+              "-0.07 < temperature <= 0.61",
+              0.02984985415873374
+            ],
+            [
+              "creatinine <= -0.72",
+              -0.02547350121103342
+            ]
+          ]
+        },
+        "mortality": {
+          "risk_score": 0.18614106338990827,
+          "risk_category": "LOW RISK",
+          "actual_outcome": false,
+          "description": "In-Hospital Mortality",
+          "shap_top_factors": [],
+          "lime_explanation": [
+            [
+              "creatinine > 0.54",
+              -0.05035082184824337
+            ],
+            [
+              "hemoglobin <= -0.77",
+              0.023069516146019233
+            ],
+            [
+              "-0.66 < heart_rate <= 0.15",
+              0.019040913357993836
+            ],
+            [
+              "insurance_encoded <= -1.29",
+              0.017957260826778915
+            ],
+            [
+              "-0.13 < age <= 0.38",
+              0.01513564811292033
+            ]
+          ]
+        }
+      },
+      "overall_risk_score": 0.14785692495393177,
+      "risk_category": "LOW",
+      "clinical_summary": {
+        "age": 68.84386688064401,
+        "heart_rate": 86.69046432878189,
+        "blood_pressure": 131.89042150913042,
+        "temperature": 102.49627568876667,
+        "glucose": 77.20295817743443,
+        "creatinine": 0.8210881996698486
+      },
+      "recommendations": [
+        "\u2705 LOW RISK - Standard care protocols appropriate",
+        "\ud83d\udccb Routine monitoring and standard treatment plans",
+        "\ud83c\udfe5 Continue current care pathway",
+        "\ud83d\udcc5 Regular scheduled assessments"
+      ]
+    },
+    {
+      "patient_id": 4,
+      "timestamp": "2025-10-21T11:55:32.597116",
+      "diseases": {
+        "sepsis": {
+          "risk_score": 0.17518691105981574,
+          "risk_category": "LOW RISK",
+          "actual_outcome": false,
+          "description": "Sepsis and Septic Shock",
+          "shap_top_factors": [],
+          "lime_explanation": [
+            [
+              "age > 0.55",
+              0.08092445937135519
+            ],
+            [
+              "temperature <= -0.71",
+              -0.05702688779629153
+            ],
+            [
+              "0.19 < glucose <= 0.82",
+              0.019539753350565663
+            ],
+            [
+              "-0.19 < hemoglobin <= 0.54",
+              0.01783689641000238
+            ],
+            [
+              "0.10 < systolic_bp <= 0.97",
+              0.012614843748351567
+            ]
+          ]
+        },
+        "kidney_failure": {
+          "risk_score": 0.3702196013599521,
+          "risk_category": "LOW RISK",
+          "actual_outcome": true,
+          "description": "Acute Kidney Injury",
+          "shap_top_factors": [],
+          "lime_explanation": [
+            [
+              "-0.42 < age <= 0.01",
+              -0.0985887089671342
+            ],
+            [
+              "-0.18 < creatinine <= 0.75",
+              0.050111383076552676
+            ],
+            [
+              "-0.06 < systolic_bp <= 0.87",
+              -0.040560834063163104
+            ],
+            [
+              "-0.93 < glucose <= 0.08",
+              0.02011260807798606
+            ],
+            [
+              "-0.82 < heart_rate <= -0.03",
+              0.018443975494011257
+            ]
+          ]
+        },
+        "cardiovascular": {
+          "risk_score": 0.33761313308532565,
+          "risk_category": "LOW RISK",
+          "actual_outcome": true,
+          "description": "Cardiovascular Events",
+          "shap_top_factors": [],
+          "lime_explanation": [
+            [
+              "age > 0.93",
+              0.10772546589969477
+            ],
+            [
+              "-0.67 < systolic_bp <= 0.02",
+              -0.09045860931850047
+            ],
+            [
+              "platelet_count > 0.76",
+              0.051923577924194726
+            ],
+            [
+              "-0.64 < hemoglobin <= -0.06",
+              0.03497186284618195
+            ],
+            [
+              "0.03 < creatinine <= 0.65",
+              0.027194955771048822
+            ]
+          ]
+        },
+        "mortality": {
+          "risk_score": 0.3263731289687925,
+          "risk_category": "LOW RISK",
+          "actual_outcome": false,
+          "description": "In-Hospital Mortality",
+          "shap_top_factors": [],
+          "lime_explanation": [
+            [
+              "-1.29 < insurance_encoded <= -0.04",
+              0.025183987658599413
+            ],
+            [
+              "heart_rate > 0.77",
+              0.015471170137949124
+            ],
+            [
+              "0.16 < white_blood_cells <= 0.72",
+              0.014950553181098452
+            ],
+            [
+              "-0.13 < age <= 0.38",
+              0.013718068578436245
+            ],
+            [
+              "-0.12 < systolic_bp <= 0.71",
+              -0.013358292879501186
+            ]
+          ]
+        }
+      },
+      "overall_risk_score": 0.3023481936184715,
+      "risk_category": "MODERATE",
+      "clinical_summary": {
+        "age": 53.76979697742291,
+        "heart_rate": 70.58026120276043,
+        "blood_pressure": 119.18314064967836,
+        "temperature": 99.60709605701192,
+        "glucose": 70.0,
+        "creatinine": 0.5
+      },
+      "recommendations": [
+        "\ud83d\udcc8 MODERATE RISK - Enhanced monitoring recommended",
+        "\ud83d\udd0d Regular clinical assessment and vital sign monitoring",
+        "\ud83d\udccb Consider preventive interventions and risk factor modification",
+        "\ud83e\ude7a Scheduled follow-up within 24-48 hours"
+      ]
+    }
+  ],
+  "clinical_insights": {
+    "highest_prevalence_disease": "kidney_failure",
+    "average_model_auc": 0.6829267817491977,
+    "patients_needing_attention": 1
+  }
+}
