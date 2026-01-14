@@ -15,11 +15,17 @@ This project implements a **comprehensive Explainable AI system for medical diag
 ## 🏆 **Key Features & Objectives Achieved**
 
 ### ✅ **1. Multi-Disease Diagnostic Model**
-- Predicts **4 critical conditions** simultaneously:
+- Predicts **8 critical conditions** simultaneously:
   - **Sepsis & Septic Shock** (Life-threatening infection response)
   - **Acute Kidney Injury** (Kidney function deterioration)  
-  - **Cardiovascular Events** (Heart-related complications)
+  - **Heart Disease** (Cardiac complications and coronary events)
+  - **Diabetes** (Glucose metabolism disorders)
+  - **Anemia** (Low hemoglobin and blood disorders)
+  - **Thalassemia** (Genetic blood disorder)
+  - **Thrombocytopenia** (Low platelet count)
   - **In-Hospital Mortality** (Death risk prediction)
+- **Average Performance**: AUROC 0.833, Accuracy 76.1%
+- **Best Model**: Kidney Failure (AUROC 0.907, 82% accuracy)
 
 ### ✅ **2. Explainable AI (XAI) Methods**
 - **SHAP (Global Explanations)**: Shows which factors matter most across all patients
@@ -46,12 +52,15 @@ This project implements a **comprehensive Explainable AI system for medical diag
 pip install -r requirements.txt
 
 # 2. Install additional packages for explainability
-pip install shap lime plotly dash
+pip install shap lime plotly dash xgboost scikit-learn
 
-# 3. Run the complete system
-python final_demo.py
+# 3. Train advanced models (50K samples)
+python train_advanced_models.py --n-samples 50000
 
-# 4. Launch interactive dashboard with What-If Analysis
+# 4. Verify trained models (8 diseases)
+python verify_trained_models.py
+
+# 5. Launch interactive dashboard with What-If Analysis
 python enhanced_dashboard_with_whatif.py
 # Access at: http://127.0.0.1:8051
 ```

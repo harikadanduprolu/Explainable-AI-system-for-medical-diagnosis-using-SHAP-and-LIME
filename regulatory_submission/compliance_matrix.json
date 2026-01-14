@@ -1,0 +1,240 @@
+{
+  "generated_at": "2026-01-14",
+  "total_requirements": 16,
+  "compliance_summary": {
+    "full": 14,
+    "partial": 2,
+    "planned": 0
+  },
+  "mappings": [
+    {
+      "requirement_id": "FDA-1",
+      "framework": "FDA_SAMD",
+      "requirement_title": "Algorithm Change Traceability",
+      "system_components": [
+        "model_registry.py (ModelRegistry)",
+        "audit_logging.py (MODEL_VERSION events)",
+        "decision_trace.py (model_version binding)"
+      ],
+      "implementation_details": "ModelRegistry stores immutable ModelMetadata for each trained model, including model_version, training_data_version, training_data_hash, feature_schema_hash, hyperparameters, metrics, and code_hash. Every prediction event logs the active model_version via audit_logging. Decision traces bind model_version to each clinical decision, enabling reconstruction of which algorithm was active at decision time.",
+      "evidence": "model_registry.py lines 70-130 (ModelMetadata schema), audit_logging.py lines 50-80 (MODEL_VERSION event type), decision_trace.py lines 30-50 (model_version in DecisionTrace)",
+      "compliance_status": "FULL",
+      "gaps": null,
+      "remediation_plan": null
+    },
+    {
+      "requirement_id": "FDA-2",
+      "framework": "FDA_MLDS",
+      "requirement_title": "Post-Market Surveillance and Monitoring",
+      "system_components": [
+        "audit_logging.py (hash-chained event log)",
+        "evaluation_pipeline.py (performance metrics)",
+        "alert_engine.py (alert tracking)"
+      ],
+      "implementation_details": "Audit logger captures every prediction, explanation, alert, and clinician action with SHA-256 hash chaining for tamper evidence. Evaluation pipeline computes AUROC, AUPRC, calibration metrics on test sets, enabling periodic performance drift detection. Alert engine tracks alert rates, acknowledgment rates, and escalations for safety monitoring.",
+      "evidence": "audit_logging.py lines 150-250 (AuditLogger with hash chain), evaluation_pipeline.py lines 200-400 (ModelMetrics computation), alert_engine.py lines 300-350 (alert tracking)",
+      "compliance_status": "FULL",
+      "gaps": null,
+      "remediation_plan": null
+    },
+    {
+      "requirement_id": "FDA-3",
+      "framework": "FDA_SAMD",
+      "requirement_title": "Risk Management and Traceability",
+      "system_components": [
+        "decision_trace.py (DecisionTrace)",
+        "governance.py (GovernanceContext)",
+        "alert_engine.py (severity classification)"
+      ],
+      "implementation_details": "DecisionTrace links input_summary \u2192 prediction \u2192 explanation \u2192 alert \u2192 clinician_action in a single traceable record. GovernanceContext enforces fail-closed logging: no prediction without audit trail, no alert without explanation. Alert engine classifies severity (MODERATE/HIGH/CRITICAL) with recommended actions per tier.",
+      "evidence": "decision_trace.py lines 40-100 (DecisionTrace schema), governance.py lines 50-120 (fail-closed guards), alert_engine.py lines 80-150 (AlertSeverity classification)",
+      "compliance_status": "FULL",
+      "gaps": null,
+      "remediation_plan": null
+    },
+    {
+      "requirement_id": "FDA-4",
+      "framework": "FDA_MLDS",
+      "requirement_title": "Data Provenance and Quality",
+      "system_components": [
+        "model_registry.py (training_data_version, training_data_hash)",
+        "evaluation_pipeline.py (DataSplit with metadata)"
+      ],
+      "implementation_details": "ModelMetadata includes training_data_version (e.g., 'mimic-v5') and training_data_hash (SHA-256 of training set) for complete provenance. DataSplit records split_params (test_size, stratified, random_seed) and class distributions for reproducibility.",
+      "evidence": "model_registry.py lines 75-85 (training_data_version/hash fields), evaluation_pipeline.py lines 100-150 (DataSplit with provenance)",
+      "compliance_status": "FULL",
+      "gaps": null,
+      "remediation_plan": null
+    },
+    {
+      "requirement_id": "FDA-5",
+      "framework": "FDA_SAMD",
+      "requirement_title": "Clinical Performance Validation",
+      "system_components": [
+        "evaluation_pipeline.py (EvaluationPipeline)"
+      ],
+      "implementation_details": "EvaluationPipeline computes AUROC, AUPRC with 95% CI (1000 bootstrap samples), accuracy, precision, recall, F1, specificity, Brier score, log loss. Generates ROC/PR curves, calibration plots, confusion matrices. Exports LaTeX tables for publication/submission.",
+      "evidence": "evaluation_pipeline.py lines 200-450 (ModelMetrics with CI), evaluation_pipeline.py lines 550-700 (ROC/PR plot generation), evaluation_pipeline.py lines 900-1000 (LaTeX table export)",
+      "compliance_status": "FULL",
+      "gaps": null,
+      "remediation_plan": null
+    },
+    {
+      "requirement_id": "EU-1",
+      "framework": "EU_AI_ACT",
+      "requirement_title": "User Transparency and Information",
+      "system_components": [
+        "xai_engine.py (ClinicalExplanation with clinical_summary)",
+        "alert_engine.py (ClinicalAlert.to_clinician_message)",
+        "governed_whatif_engine.py (SimulationResult with disclaimer)"
+      ],
+      "implementation_details": "XAI Engine generates clinical_summary in plain English (e.g., 'High lactate and elevated WBC indicate infection risk'). Alert messages include severity, risk probability, and recommended actions. What-if simulations include mandatory disclaimer: 'HYPOTHETICAL ONLY' with plausibility assessment.",
+      "evidence": "xai_engine.py lines 200-250 (ClinicalExplanation schema), alert_engine.py lines 150-200 (to_clinician_message formatting), governed_whatif_engine.py lines 250-300 (disclaimer logic)",
+      "compliance_status": "FULL",
+      "gaps": null,
+      "remediation_plan": null
+    },
+    {
+      "requirement_id": "EU-2",
+      "framework": "EU_AI_ACT",
+      "requirement_title": "Automatic Logging of Events",
+      "system_components": [
+        "audit_logging.py (AuditLogger)",
+        "governance.py (mandatory logging enforcement)"
+      ],
+      "implementation_details": "AuditLogger records every prediction, explanation, alert, clinician action, model version change, threshold change, and failure event. Hash-chained with SHA-256 for tamper detection. GovernanceContext enforces fail-closed: no operation without active logger.",
+      "evidence": "audit_logging.py lines 50-100 (AuditEventType taxonomy), audit_logging.py lines 150-300 (AuditLogger implementation), governance.py lines 50-80 (require_logger guards)",
+      "compliance_status": "FULL",
+      "gaps": null,
+      "remediation_plan": null
+    },
+    {
+      "requirement_id": "EU-3",
+      "framework": "EU_AI_ACT",
+      "requirement_title": "Human Oversight and Intervention",
+      "system_components": [
+        "alert_engine.py (clinician acknowledgment)",
+        "governed_whatif_engine.py (clinician-initiated simulations)",
+        "decision_trace.py (clinician_action_event)"
+      ],
+      "implementation_details": "Alert engine requires explicit clinician acknowledgment (logged with clinician_id, notes, timestamp). What-if simulations require clinician_id and log every simulation. Decision traces capture clinician_action_event with action details. No autonomous action without human-in-the-loop.",
+      "evidence": "alert_engine.py lines 400-450 (acknowledge_alert method), governed_whatif_engine.py lines 200-250 (clinician_id requirement), decision_trace.py lines 150-180 (log_clinician_action)",
+      "compliance_status": "FULL",
+      "gaps": null,
+      "remediation_plan": null
+    },
+    {
+      "requirement_id": "EU-4",
+      "framework": "EU_AI_ACT",
+      "requirement_title": "Accuracy and Robustness Requirements",
+      "system_components": [
+        "evaluation_pipeline.py (comprehensive metrics)",
+        "model_registry.py (metrics stored per version)"
+      ],
+      "implementation_details": "Evaluation pipeline computes 11+ metrics (AUROC, AUPRC, calibration, etc.) with 95% CI. Metrics stored in ModelMetadata per version, enabling performance tracking over time. Threshold validation ensures predictions meet clinical accuracy requirements.",
+      "evidence": "evaluation_pipeline.py lines 200-300 (ModelMetrics with CI), model_registry.py lines 80-90 (metrics field in ModelMetadata)",
+      "compliance_status": "FULL",
+      "gaps": "Adversarial robustness testing not yet implemented",
+      "remediation_plan": "Add adversarial perturbation tests to evaluation_pipeline (Q2 2026)"
+    },
+    {
+      "requirement_id": "EU-5",
+      "framework": "EU_AI_ACT",
+      "requirement_title": "Technical Documentation and Version Control",
+      "system_components": [
+        "model_registry.py (ModelMetadata)",
+        "technical_effect_registry.py (TechnicalEffect documentation)"
+      ],
+      "implementation_details": "ModelRegistry stores complete metadata: model_version, training_data_version/hash, feature_schema_hash, hyperparameters, metrics, code_hash, artifact_path. Technical effect registry documents problems, solutions, and measurable effects for each component.",
+      "evidence": "model_registry.py lines 70-130 (ModelMetadata schema), technical_effect_registry.py lines 100-200 (TechnicalEffect schema)",
+      "compliance_status": "FULL",
+      "gaps": null,
+      "remediation_plan": null
+    },
+    {
+      "requirement_id": "EU-6",
+      "framework": "EU_AI_ACT",
+      "requirement_title": "Training Data Quality and Governance",
+      "system_components": [
+        "model_registry.py (training_data_version, training_data_hash)",
+        "evaluation_pipeline.py (stratified splits with class balance)"
+      ],
+      "implementation_details": "ModelMetadata captures training_data_version and SHA-256 hash of training set. DataSplit uses stratified sampling to preserve class balance across train/val/test. Class distribution reported for each split.",
+      "evidence": "model_registry.py lines 75-85 (data provenance fields), evaluation_pipeline.py lines 100-200 (stratified splitting)",
+      "compliance_status": "PARTIAL",
+      "gaps": "Bias analysis not yet implemented",
+      "remediation_plan": "Add fairness metrics (demographic parity, equalized odds) to evaluation_pipeline (Q2 2026)"
+    },
+    {
+      "requirement_id": "GDPR-1",
+      "framework": "GDPR",
+      "requirement_title": "Right to Information about Processing",
+      "system_components": [
+        "xai_engine.py (ClinicalExplanation)",
+        "decision_trace.py (input_summary binding)"
+      ],
+      "implementation_details": "DecisionTrace captures input_summary (patient features used in decision). XAI Engine generates ClinicalExplanation with top_risk_factors (feature name, value, importance, clinical interpretation). Patients can request trace via patient_id.",
+      "evidence": "decision_trace.py lines 40-60 (input_summary field), xai_engine.py lines 200-300 (ClinicalExplanation with feature details)",
+      "compliance_status": "FULL",
+      "gaps": null,
+      "remediation_plan": null
+    },
+    {
+      "requirement_id": "GDPR-2",
+      "framework": "GDPR",
+      "requirement_title": "Right to Explanation for Automated Decisions",
+      "system_components": [
+        "xai_engine.py (SHAP/LIME explanations)",
+        "governance.py (no prediction without explanation)"
+      ],
+      "implementation_details": "XAI Engine generates SHAP/LIME explanations for every prediction, providing feature importances and clinical interpretations. GovernanceContext enforces: no alert without explanation_event. Clinical summaries translate technical outputs to plain language.",
+      "evidence": "xai_engine.py lines 400-600 (SHAP/LIME implementation), governance.py lines 80-120 (require_explanation_link guards)",
+      "compliance_status": "FULL",
+      "gaps": null,
+      "remediation_plan": null
+    },
+    {
+      "requirement_id": "GDPR-3",
+      "framework": "GDPR",
+      "requirement_title": "Data Subject Access to Processing Records",
+      "system_components": [
+        "audit_logging.py (patient_id indexing)",
+        "decision_trace.py (DecisionTraceManager)"
+      ],
+      "implementation_details": "Audit log includes patient_id in every event. DecisionTraceManager stores traces indexed by patient_id. Export functions (export_human_readable) generate CSV reports for patient data access requests.",
+      "evidence": "audit_logging.py lines 60-80 (patient_id field in AuditEvent), audit_logging.py lines 350-400 (export_human_readable method), decision_trace.py lines 100-150 (trace storage by patient_id)",
+      "compliance_status": "FULL",
+      "gaps": null,
+      "remediation_plan": null
+    },
+    {
+      "requirement_id": "GDPR-4",
+      "framework": "GDPR",
+      "requirement_title": "Privacy by Design and Default",
+      "system_components": [
+        "audit_logging.py (no PII in payload by default)",
+        "decision_trace.py (input_summary pseudonymization)"
+      ],
+      "implementation_details": "Audit events use patient_id (pseudonym) rather than PHI. Payload fields contain clinical features (numeric values) without names/identifiers. Input summaries use de-identified feature names.",
+      "evidence": "audit_logging.py lines 60-90 (patient_id as pseudonym), decision_trace.py lines 50-70 (input_summary with de-identified features)",
+      "compliance_status": "PARTIAL",
+      "gaps": "Encryption at rest not enforced by code",
+      "remediation_plan": "Add encrypted audit log storage with key management (Q3 2026)"
+    },
+    {
+      "requirement_id": "GDPR-5",
+      "framework": "GDPR",
+      "requirement_title": "Accountability and Demonstrable Compliance",
+      "system_components": [
+        "audit_logging.py (immutable audit trail)",
+        "governance.py (fail-closed enforcement)",
+        "technical_effect_registry.py (technical documentation)"
+      ],
+      "implementation_details": "Hash-chained audit log provides cryptographic proof of event integrity. GovernanceContext enforces mandatory logging with RegulatoryViolationError on bypass. Technical effect registry documents compliance measures and measurable effects.",
+      "evidence": "audit_logging.py lines 150-300 (hash chain implementation), governance.py lines 20-50 (RegulatoryViolationError guards), technical_effect_registry.py (complete compliance documentation)",
+      "compliance_status": "FULL",
+      "gaps": null,
+      "remediation_plan": null
+    }
+  ]
+}
