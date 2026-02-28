@@ -37,11 +37,16 @@ def load_results():
 # Load trained models at startup
 print("Loading trained models...")
 TRAINED_MODELS = {}
-for model_file in Path("trained_models").glob("*.pkl"):
-    disease = model_file.stem.split("_xgboost")[0]
-    bundle = joblib.load(model_file)
-    TRAINED_MODELS[disease] = bundle
-    print(f"  ✅ Loaded {disease} model")
+# Load advanced models (best performance)
+for model_file in Path("trained_models").glob("*_advanced_*.pkl"):
+    # Extract disease name (e.g., "sepsis" from "sepsis_advanced_v1.0.0.pkl")
+    disease = model_file.stem.split("_advanced")[0]
+    try:
+        bundle = joblib.load(model_file)
+        TRAINED_MODELS[disease] = bundle
+        print(f"  [OK] Loaded {disease} model")
+    except Exception as e:
+        print(f"  [WARNING] Failed to load {disease}: {e}")
 
 def create_sample_results():
     """Load actual model performance."""
@@ -52,13 +57,13 @@ def create_sample_results():
                 'timestamp': datetime.now().isoformat(),
                 'data_source': 'Demo Data with What-If Analysis',
                 'patients_analyzed': 5,
-                'diseases_modeled': ['sepsis', 'kidney_failure', 'cardiovascular', 'mortality'],
+                'diseases_modeled': ['sepsis', 'kidney_failure', 'heart_disease', 'mortality'],
                 'features_used': ['age', 'heart_rate', 'systolic_bp', 'temperature', 'glucose', 'creatinine']
             },
             'model_performance': {
                 'sepsis': {'auc': 0.711, 'accuracy': 0.897, 'f1_score': 0.0, 'prevalence': 0.098},
                 'kidney_failure': {'auc': 0.807, 'accuracy': 0.760, 'f1_score': 0.486, 'prevalence': 0.303},
-                'cardiovascular': {'auc': 0.706, 'accuracy': 0.810, 'f1_score': 0.374, 'prevalence': 0.212},
+                'heart_disease': {'auc': 0.706, 'accuracy': 0.810, 'f1_score': 0.374, 'prevalence': 0.212},
                 'mortality': {'auc': 0.508, 'accuracy': 0.843, 'f1_score': 0.041, 'prevalence': 0.159}
             },
             'patient_analysis': {
@@ -75,7 +80,7 @@ def create_sample_results():
             'data_source': 'Real Trained Models',
             'patients_analyzed': 1000,
             'diseases_modeled': list(TRAINED_MODELS.keys()),
-            'features_used': TRAINED_MODELS[list(TRAINED_MODELS.keys())[0]]['feature_names']
+            'features_used': list(TRAINED_MODELS[list(TRAINED_MODELS.keys())[0]]['scaler'].feature_names_in_)
         },
         'model_performance': {
             disease: bundle['metrics']
@@ -109,9 +114,9 @@ def predict_with_real_model(patient_data, disease='kidney_failure'):
         return 0.5  # Fallback
     
     bundle = TRAINED_MODELS[disease]
-    model = bundle['model']
+    model =bundle['model']
     scaler = bundle['scaler']
-    feature_names = bundle['feature_names']
+    feature_names = scaler.feature_names_in_
     
     try:
         # Prepare input (map display names to model features)
@@ -176,7 +181,7 @@ def get_shap_explanation(patient_data, disease='kidney_failure'):
     bundle = TRAINED_MODELS[disease]
     model = bundle['model']
     scaler = bundle['scaler']
-    feature_names = bundle['feature_names']
+    feature_names = scaler.feature_names_in_
     
     try:
         # Prepare input (same as prediction)
@@ -446,7 +451,7 @@ def update_whatif_analysis(age, creatinine, bp, glucose):
     if TRAINED_MODELS:
         diseases = list(TRAINED_MODELS.keys())
     else:
-        diseases = ['kidney_failure', 'cardiovascular', 'sepsis', 'mortality']
+        diseases = ['kidney_failure', 'heart_disease', 'sepsis', 'mortality']
     risks = {}
     
     for disease in diseases:
@@ -501,7 +506,7 @@ def update_whatif_analysis(age, creatinine, bp, glucose):
                 "🧪 Order: Creatinine, BUN, electrolytes",
                 "💧 Assess fluid balance and medications"
             ])
-        elif disease_name == 'cardiovascular':
+        elif disease_name in ['cardiovascular', 'heart_disease']:
             recommendations.extend([
                 "❤️ Cardiology evaluation urgent",
                 "📋 Order: ECG, troponins, BNP",
