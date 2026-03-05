@@ -18,12 +18,12 @@ def test_predictions():
     print("🧪 Testing Trained Models")
     print("="*60)
     
-    # Load models
+    # Load models (only XGBoost base models)
     model_dir = Path("trained_models")
     models = {}
     
-    for model_file in model_dir.glob("*.pkl"):
-        disease = model_file.stem.split("_xgboost")[0]
+    for model_file in model_dir.glob("*_xgboost_v*.pkl"):
+        disease = model_file.stem.replace("_xgboost_v1.0.0", "")
         bundle = joblib.load(model_file)
         models[disease] = bundle
         print(f"✅ Loaded: {disease}")
@@ -47,6 +47,12 @@ def test_predictions():
         'lactate': 3.5
     }
     
+    # Add engineered features
+    patient_data['shock_index'] = patient_data['heart_rate'] / patient_data['systolic_bp']
+    patient_data['hr_bp_ratio'] = patient_data['heart_rate'] / patient_data['systolic_bp']
+    patient_data['creat_bun_ratio'] = patient_data['creatinine'] / patient_data['bun']
+    patient_data['age_glucose'] = patient_data['age'] * patient_data['glucose']
+    
     print(f"  Age: {patient_data['age']:.0f} years")
     print(f"  Heart Rate: {patient_data['heart_rate']:.0f} bpm (elevated)")
     print(f"  Temperature: {patient_data['temperature']:.1f}°F (fever)")
@@ -59,33 +65,40 @@ def test_predictions():
     print("-" * 60)
     
     for disease, bundle in models.items():
-        model = bundle['model']
-        scaler = bundle['scaler']
-        feature_names = bundle['feature_names']
-        
-        # Prepare input
-        X = pd.DataFrame([patient_data])[feature_names]
-        X_scaled = scaler.transform(X)
-        
-        # Predict
-        risk_prob = model.predict_proba(X_scaled)[0][1]
-        risk_category = (
-            "CRITICAL" if risk_prob >= 0.75 else
-            "HIGH" if risk_prob >= 0.55 else
-            "MODERATE" if risk_prob >= 0.35 else
-            "LOW"
-        )
-        
-        # Get feature importance
-        if hasattr(model, 'feature_importances_'):
-            importances = model.feature_importances_
-            top_idx = np.argsort(importances)[-3:][::-1]
-            top_features = [feature_names[i] for i in top_idx]
-        else:
-            top_features = ["N/A"]
-        
-        print(f"{disease.upper():20s} {risk_prob:5.1%}  [{risk_category:8s}]  "
-              f"Top: {', '.join(top_features)}")
+        try:
+            model = bundle['model']
+            scaler = bundle['scaler']
+            # Use scaler's feature names if available, otherwise use bundle's
+            if hasattr(scaler, 'feature_names_in_'):
+                feature_names = list(scaler.feature_names_in_)
+            else:
+                feature_names = bundle['feature_names']
+            
+            # Prepare input
+            X = pd.DataFrame([patient_data])[feature_names]
+            X_scaled = scaler.transform(X)
+            
+            # Predict
+            risk_prob = model.predict_proba(X_scaled)[0][1]
+            risk_category = (
+                "CRITICAL" if risk_prob >= 0.75 else
+                "HIGH" if risk_prob >= 0.55 else
+                "MODERATE" if risk_prob >= 0.35 else
+                "LOW"
+            )
+            
+            # Get feature importance (using first 3 most important from basic features)
+            if hasattr(model, 'feature_importances_'):
+                importances = model.feature_importances_
+                top_idx = np.argsort(importances)[-3:][::-1]
+                top_features = [feature_names[i].replace('_', ' ') for i in top_idx]
+            else:
+                top_features = ["N/A"]
+            
+            print(f"{disease.upper():20s} {risk_prob:5.1%}  [{risk_category:8s}]  "
+                  f"Top: {', '.join(top_features)}")
+        except Exception as e:
+            print(f"{disease.upper():20s} ERROR: {e}")
     
     print("-" * 60)
     

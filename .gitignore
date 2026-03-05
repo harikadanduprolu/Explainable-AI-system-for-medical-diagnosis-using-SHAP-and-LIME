@@ -120,3 +120,19 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+# Large data files
+*.csv
+!**/requirements.txt
+practice/mimic_cxr_aug_train.csv
+mimic_cxr_aug_train.csv
+*.h5
+*.hdf5
+mimic_large.csv
+mimic_training_data.csv
+
+# Medical images (large files)
+*.dcm
+*.nii
+*.nii.gz
+sample_medical_images/

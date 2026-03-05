@@ -1,0 +1,5 @@
+Disease,Model,AUROC,AUROC_CI,AUPRC,AUPRC_CI,Accuracy,Precision,Recall,F1,Specificity,Brier,N,Prevalence
+Sepsis,RandomForest,0.990,(0.972-1.000),0.950,(0.855-1.000),0.900,0.516,1.000,0.681,0.888,0.029,150,0.107
+Acute Kidney Injury,RandomForest,0.990,(0.972-1.000),0.950,(0.852-1.000),0.900,0.516,1.000,0.681,0.888,0.029,150,0.107
+Cardiovascular,RandomForest,0.990,(0.972-1.000),0.950,(0.855-1.000),0.900,0.516,1.000,0.681,0.888,0.029,150,0.107
+Mortality,RandomForest,0.990,(0.971-1.000),0.950,(0.851-1.000),0.900,0.516,1.000,0.681,0.888,0.029,150,0.107

@@ -1,0 +1,4 @@
+Method,Data Type,Scope,Model Type,Computation,Interpretability,Theory,Output,Use Case
+SHAP,Tabular/Structured,Global + Local,Any,Moderate,High,Game Theory,Feature Importance,Clinical Features
+LIME,Tabular/Structured,Local Only,Any,Fast,Very High,Linear Approximation,Feature Weights,Clinical Features
+GradCAM,Images/Visual,Local Only,CNN/Deep Learning,Fast,Very High,Gradient-based,Attention Heatmap,Medical Images

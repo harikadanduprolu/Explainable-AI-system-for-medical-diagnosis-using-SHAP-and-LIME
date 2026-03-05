@@ -110,6 +110,10 @@ class MultiDiseaseExplainableSystem:
             data['chartevents'] = pd.read_csv(self.mimic_path / "CHARTEVENTS.csv", nrows=50000)
             data['labevents'] = pd.read_csv(self.mimic_path / "LABEVENTS.csv", nrows=50000)
             
+            # Standardize column names to uppercase
+            for table_name, df in data.items():
+                data[table_name].columns = [col.upper() for col in df.columns]
+            
             logger.info(f"✅ Loaded {len(data)} tables successfully")
             for table, df in data.items():
                 logger.info(f"  📊 {table}: {df.shape}")
@@ -257,12 +261,28 @@ class MultiDiseaseExplainableSystem:
         if 'chartevents' in data and not data['chartevents'].empty:
             clinical_data = data['chartevents']
             
-            # Merge clinical data
+            # Get all clinical columns except duplicates
             clinical_cols = [col for col in clinical_data.columns 
-                           if col not in ['SUBJECT_ID', 'HADM_ID']]
+                           if col not in df.columns or col in ['SUBJECT_ID', 'HADM_ID']]
             
-            df = df.merge(clinical_data[['SUBJECT_ID'] + clinical_cols], 
-                         on='SUBJECT_ID', how='left')
+            # Merge on both SUBJECT_ID and HADM_ID if available
+            merge_keys = ['SUBJECT_ID']
+            if 'HADM_ID' in clinical_data.columns and 'HADM_ID' in df.columns:
+                merge_keys.append('HADM_ID')
+            
+            df = df.merge(clinical_data, on=merge_keys, how='left', suffixes=('', '_clinical'))
+        
+        # Ensure AGE column exists
+        if 'AGE' not in df.columns:
+            # Calculate from DOB if available
+            if 'DOB' in df.columns and 'ADMITTIME' in df.columns:
+                df['ADMITTIME'] = pd.to_datetime(df['ADMITTIME'])
+                df['DOB'] = pd.to_datetime(df['DOB'])
+                df['AGE'] = (df['ADMITTIME'] - df['DOB']).dt.days / 365.25
+            else:
+                # Use a default age if not available
+                logger.warning("AGE column not found, using default value")
+                df['AGE'] = 65.0
         
         # Encode categorical variables
         categorical_features = ['GENDER', 'ADMISSION_TYPE', 'ETHNICITY', 'INSURANCE']

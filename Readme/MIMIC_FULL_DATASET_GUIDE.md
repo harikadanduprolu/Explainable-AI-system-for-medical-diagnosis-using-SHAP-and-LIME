@@ -1,4 +1,4 @@
-# Training on Full MIMIC Dataset - Complete Guide
+y# Training on Full MIMIC Dataset - Complete Guide
 
 ## Current Status
 You have: **MIMIC-III Demo** (100 patients, 129 admissions)  

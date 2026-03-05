@@ -59,6 +59,10 @@ from sklearn.metrics import (
     brier_score_loss, log_loss
 )
 from sklearn.calibration import calibration_curve
+
+# Set matplotlib backend to non-GUI for compatibility
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.stats import bootstrap
@@ -745,6 +749,16 @@ class EvaluationPipeline:
             shap_values = shap_explainer.shap_values(X_test)
             if isinstance(shap_values, list):
                 shap_values = shap_values[1]  # Positive class
+            
+            # Handle potential 3D arrays (samples, features, classes)
+            if len(shap_values.shape) == 3:
+                shap_values = shap_values[:, :, 1]
+            
+            # Ensure 2D: (samples, features)
+            if len(shap_values.shape) != 2:
+                print(f"  ⚠️ Unexpected SHAP shape: {shap_values.shape}")
+                return {}
+                
         except Exception as e:
             print(f"  ✗ SHAP computation failed: {e}")
             return {}
@@ -758,9 +772,15 @@ class EvaluationPipeline:
         # Test 1: Additivity
         base_value = shap_explainer.expected_value
         if isinstance(base_value, (list, np.ndarray)):
-            base_value = base_value[1]
+            base_value = base_value[1] if len(base_value) > 1 else base_value[0]
         
+        # Sum SHAP values across features (axis=1) to get per-sample totals
         shap_sums = base_value + shap_values.sum(axis=1)
+        
+        # Ensure both are 1D arrays
+        shap_sums = np.asarray(shap_sums).flatten()
+        predictions = np.asarray(predictions).flatten()
+        
         additivity_errors = np.abs(shap_sums - predictions)
         mean_additivity_error = np.mean(additivity_errors)
         max_additivity_error = np.max(additivity_errors)
@@ -824,6 +844,9 @@ class EvaluationPipeline:
             axes[1].grid(alpha=0.3)
             
             plt.tight_layout()
+            
+            # Ensure output directory exists
+            Path(output_path).parent.mkdir(parents=True, exist_ok=True)
             plt.savefig(output_path, dpi=300, bbox_inches='tight')
             print(f"  ✓ Validation plot saved to {output_path}")
             plt.close()

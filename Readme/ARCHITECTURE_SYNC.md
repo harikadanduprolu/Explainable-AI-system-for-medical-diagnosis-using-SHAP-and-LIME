@@ -29,7 +29,7 @@ The system has **evolved beyond the original documented architecture**, expandin
 | Kidney Failure | XGBoost Advanced | 0.907 | 82.0% | `trained_models/kidney_failure_advanced_v1.0.0.pkl` ⭐ |
 | Heart Disease | XGBoost Advanced | 0.818 | 73.5% | `trained_models/heart_disease_advanced_v1.0.0.pkl` |
 | Diabetes | XGBoost Advanced | 0.837 | 77.6% | `trained_models/diabetes_advanced_v1.0.0.pkl` |
-| Anemia | XGBoost Advanced | 0.872 | 78.8% | `trained_models/anemia_advanced_v1.0.0.pkl` |
+| Anemia | XGBoost Advanced | 0.872 | 78.8% | `trained_models/anemia_advanced_v1.0.0.pkl` |0
 | Thalassemia | XGBoost Advanced | 0.858 | 75.5% | `trained_models/thalassemia_advanced_v1.0.0.pkl` |
 | Thrombocytopenia | XGBoost Advanced | 0.804 | 77.8% | `trained_models/thrombocytopenia_advanced_v1.0.0.pkl` |
 | Mortality | XGBoost Advanced | 0.707 | 65.1% | `trained_models/mortality_advanced_v1.0.0.pkl` |
