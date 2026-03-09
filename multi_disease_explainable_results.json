@@ -1,0 +1,764 @@
+{
+  "system_info": {
+    "timestamp": "2026-03-05T13:53:34.596601",
+    "diseases_analyzed": [
+      "sepsis",
+      "kidney_failure",
+      "cardiovascular",
+      "mortality"
+    ],
+    "patients_processed": 5,
+    "models_trained": 4
+  },
+  "model_performance": {
+    "sepsis": {
+      "accuracy": 0.9615384615384616,
+      "auc": 0.8,
+      "f1_score": 0.0,
+      "prevalence": 0.05426356589147287
+    },
+    "kidney_failure": {
+      "accuracy": 0.8461538461538461,
+      "auc": 0.7523809523809525,
+      "f1_score": 0.3333333333333333,
+      "prevalence": 0.20930232558139536
+    },
+    "cardiovascular": {
+      "accuracy": 0.8076923076923077,
+      "auc": 0.7386363636363636,
+      "f1_score": 0.0,
+      "prevalence": 0.15503875968992248
+    },
+    "mortality": {
+      "accuracy": 0.7307692307692307,
+      "auc": 0.7222222222222223,
+      "f1_score": 0.36363636363636365,
+      "prevalence": 0.31007751937984496
+    }
+  },
+  "patient_reports": [
+    {
+      "patient_id": 0,
+      "diseases": {
+        "sepsis": {
+          "risk_score": "0.0033355562",
+          "risk_category": "LOW RISK",
+          "actual_outcome": false,
+          "top_shap_factors": [
+            [
+              "systolic_bp",
+              -1.1067062616348267
+            ],
+            [
+              "white_blood_cells",
+              -0.905585765838623
+            ],
+            [
+              "temperature",
+              -0.8790944814682007
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "-0.10 < systolic_bp <= 0.29",
+              -0.02851434084420341
+            ],
+            [
+              "creatinine <= -0.59",
+              -0.014621152233011126
+            ],
+            [
+              "0.15 < ethnicity_encoded <= 0.61",
+              0.013478408306852001
+            ]
+          ]
+        },
+        "kidney_failure": {
+          "risk_score": "0.005695677",
+          "risk_category": "LOW RISK",
+          "actual_outcome": false,
+          "top_shap_factors": [
+            [
+              "creatinine",
+              -1.0782151222229004
+            ],
+            [
+              "age",
+              -0.7332532405853271
+            ],
+            [
+              "systolic_bp",
+              -0.6662176251411438
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "creatinine <= -0.82",
+              -0.23375448131814533
+            ],
+            [
+              "-0.16 < age <= 0.14",
+              -0.20072237507270022
+            ],
+            [
+              "-0.89 < temperature <= -0.05",
+              0.08893522814666806
+            ]
+          ]
+        },
+        "cardiovascular": {
+          "risk_score": "0.082587935",
+          "risk_category": "LOW RISK",
+          "actual_outcome": false,
+          "top_shap_factors": [
+            [
+              "age",
+              -1.1282236576080322
+            ],
+            [
+              "creatinine",
+              0.6443122625350952
+            ],
+            [
+              "gender_encoded",
+              -0.6421066522598267
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "age <= -1.00",
+              -0.12143053497137857
+            ],
+            [
+              "gender_encoded <= -1.03",
+              -0.0867481973539163
+            ],
+            [
+              "0.45 < creatinine <= 1.02",
+              0.03942167051865479
+            ]
+          ]
+        },
+        "mortality": {
+          "risk_score": "0.3382849",
+          "risk_category": "MODERATE RISK",
+          "actual_outcome": false,
+          "top_shap_factors": [
+            [
+              "temperature",
+              1.4019908905029297
+            ],
+            [
+              "white_blood_cells",
+              -0.9606833457946777
+            ],
+            [
+              "creatinine",
+              0.7325173020362854
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "temperature > 0.30",
+              0.20341420194044696
+            ],
+            [
+              "white_blood_cells > 0.30",
+              -0.12793432283213715
+            ],
+            [
+              "creatinine > 0.55",
+              0.09653063491630258
+            ]
+          ]
+        }
+      },
+      "overall_risk": "LOW",
+      "recommendations": [
+        "\u2705 Low risk across all analyzed conditions",
+        "\ud83d\udccb Standard care protocols appropriate"
+      ]
+    },
+    {
+      "patient_id": 1,
+      "diseases": {
+        "sepsis": {
+          "risk_score": "0.0016013301",
+          "risk_category": "LOW RISK",
+          "actual_outcome": false,
+          "top_shap_factors": [
+            [
+              "temperature",
+              -1.4240273237228394
+            ],
+            [
+              "systolic_bp",
+              -1.0242196321487427
+            ],
+            [
+              "white_blood_cells",
+              -0.8811435699462891
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "-0.57 < systolic_bp <= -0.10",
+              -0.02351276633576935
+            ],
+            [
+              "white_blood_cells <= -1.30",
+              -0.019163380690431595
+            ],
+            [
+              "ethnicity_encoded <= 0.15",
+              -0.014607572778029843
+            ]
+          ]
+        },
+        "kidney_failure": {
+          "risk_score": "0.05986458",
+          "risk_category": "LOW RISK",
+          "actual_outcome": false,
+          "top_shap_factors": [
+            [
+              "creatinine",
+              1.3839102983474731
+            ],
+            [
+              "temperature",
+              -0.9135419726371765
+            ],
+            [
+              "systolic_bp",
+              -0.4839862585067749
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "0.35 < creatinine <= 0.82",
+              0.24398003559563383
+            ],
+            [
+              "temperature > 0.75",
+              -0.05419921352293834
+            ],
+            [
+              "-0.13 < hemoglobin <= 1.01",
+              0.024186691632249877
+            ]
+          ]
+        },
+        "cardiovascular": {
+          "risk_score": "0.0030847788",
+          "risk_category": "LOW RISK",
+          "actual_outcome": false,
+          "top_shap_factors": [
+            [
+              "systolic_bp",
+              -2.685094118118286
+            ],
+            [
+              "creatinine",
+              -1.1119927167892456
+            ],
+            [
+              "age",
+              -0.5087007284164429
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "-1.00 < age <= -0.09",
+              -0.10538259947694151
+            ],
+            [
+              "-1.03 < gender_encoded <= 0.97",
+              0.09248061320935606
+            ],
+            [
+              "creatinine <= -0.34",
+              -0.07186754036406191
+            ]
+          ]
+        },
+        "mortality": {
+          "risk_score": "0.09905471",
+          "risk_category": "LOW RISK",
+          "actual_outcome": false,
+          "top_shap_factors": [
+            [
+              "white_blood_cells",
+              -0.8128653764724731
+            ],
+            [
+              "temperature",
+              -0.6378329992294312
+            ],
+            [
+              "systolic_bp",
+              -0.3857780694961548
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "-0.10 < white_blood_cells <= 0.30",
+              0.14284886310961262
+            ],
+            [
+              "0.08 < systolic_bp <= 0.39",
+              -0.07397288985900063
+            ],
+            [
+              "-0.18 < glucose <= 0.76",
+              0.06148668223855197
+            ]
+          ]
+        }
+      },
+      "overall_risk": "LOW",
+      "recommendations": [
+        "\u2705 Low risk across all analyzed conditions",
+        "\ud83d\udccb Standard care protocols appropriate"
+      ]
+    },
+    {
+      "patient_id": 2,
+      "diseases": {
+        "sepsis": {
+          "risk_score": "0.004072564",
+          "risk_category": "LOW RISK",
+          "actual_outcome": false,
+          "top_shap_factors": [
+            [
+              "temperature",
+              -1.3353419303894043
+            ],
+            [
+              "white_blood_cells",
+              -0.8725732564926147
+            ],
+            [
+              "ethnicity_encoded",
+              -0.5176916718482971
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "systolic_bp <= -0.57",
+              0.06917379394049906
+            ],
+            [
+              "ethnicity_encoded <= 0.15",
+              -0.017044696828209423
+            ],
+            [
+              "white_blood_cells <= -1.30",
+              -0.017040441654261187
+            ]
+          ]
+        },
+        "kidney_failure": {
+          "risk_score": "0.03189075",
+          "risk_category": "LOW RISK",
+          "actual_outcome": false,
+          "top_shap_factors": [
+            [
+              "age",
+              -2.586266279220581
+            ],
+            [
+              "creatinine",
+              0.9574074149131775
+            ],
+            [
+              "temperature",
+              -0.7041597366333008
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "-0.16 < age <= 0.14",
+              -0.2060118612033659
+            ],
+            [
+              "creatinine > 0.82",
+              0.15628743761316521
+            ],
+            [
+              "hemoglobin > 1.01",
+              0.05982885183385027
+            ]
+          ]
+        },
+        "cardiovascular": {
+          "risk_score": "0.045613345",
+          "risk_category": "LOW RISK",
+          "actual_outcome": true,
+          "top_shap_factors": [
+            [
+              "systolic_bp",
+              -2.520409345626831
+            ],
+            [
+              "age",
+              0.7859146595001221
+            ],
+            [
+              "creatinine",
+              0.6973875761032104
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "systolic_bp > 0.39",
+              0.2143186754703269
+            ],
+            [
+              "-0.09 < age <= 0.77",
+              0.09437869890570488
+            ],
+            [
+              "-1.03 < gender_encoded <= 0.97",
+              0.08540093610857158
+            ]
+          ]
+        },
+        "mortality": {
+          "risk_score": "0.025574872",
+          "risk_category": "LOW RISK",
+          "actual_outcome": false,
+          "top_shap_factors": [
+            [
+              "temperature",
+              -0.9002951383590698
+            ],
+            [
+              "white_blood_cells",
+              -0.7620646953582764
+            ],
+            [
+              "hemoglobin",
+              0.6587511897087097
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "glucose > 0.76",
+              -0.13865325870010753
+            ],
+            [
+              "white_blood_cells > 0.30",
+              -0.13297622133335893
+            ],
+            [
+              "systolic_bp <= -0.65",
+              0.11807459311047022
+            ]
+          ]
+        }
+      },
+      "overall_risk": "LOW",
+      "recommendations": [
+        "\u2705 Low risk across all analyzed conditions",
+        "\ud83d\udccb Standard care protocols appropriate"
+      ]
+    },
+    {
+      "patient_id": 3,
+      "diseases": {
+        "sepsis": {
+          "risk_score": "0.004133782",
+          "risk_category": "LOW RISK",
+          "actual_outcome": false,
+          "top_shap_factors": [
+            [
+              "temperature",
+              -1.4101250171661377
+            ],
+            [
+              "white_blood_cells",
+              -0.7650109529495239
+            ],
+            [
+              "ethnicity_encoded",
+              -0.49110811948776245
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "systolic_bp <= -0.57",
+              0.08166657968182627
+            ],
+            [
+              "-0.16 < white_blood_cells <= 0.26",
+              -0.01964502961528554
+            ],
+            [
+              "-0.69 < temperature <= -0.29",
+              -0.015733888669559812
+            ]
+          ]
+        },
+        "kidney_failure": {
+          "risk_score": "0.043937616",
+          "risk_category": "LOW RISK",
+          "actual_outcome": true,
+          "top_shap_factors": [
+            [
+              "age",
+              -2.5955617427825928
+            ],
+            [
+              "creatinine",
+              1.3987679481506348
+            ],
+            [
+              "temperature",
+              -0.9311034083366394
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "0.35 < creatinine <= 0.82",
+              0.2343400296928753
+            ],
+            [
+              "-0.16 < age <= 0.14",
+              -0.22009487372667022
+            ],
+            [
+              "-0.05 < temperature <= 0.75",
+              0.07819698948594755
+            ]
+          ]
+        },
+        "cardiovascular": {
+          "risk_score": "0.020884084",
+          "risk_category": "LOW RISK",
+          "actual_outcome": false,
+          "top_shap_factors": [
+            [
+              "systolic_bp",
+              -1.4751858711242676
+            ],
+            [
+              "age",
+              -0.7846430540084839
+            ],
+            [
+              "gender_encoded",
+              0.47329890727996826
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "-1.00 < age <= -0.09",
+              -0.09492250253915899
+            ],
+            [
+              "-1.03 < gender_encoded <= 0.97",
+              0.07501274237735073
+            ],
+            [
+              "systolic_bp <= -1.06",
+              -0.06666101137054083
+            ]
+          ]
+        },
+        "mortality": {
+          "risk_score": "0.41159147",
+          "risk_category": "MODERATE RISK",
+          "actual_outcome": true,
+          "top_shap_factors": [
+            [
+              "systolic_bp",
+              1.6409107446670532
+            ],
+            [
+              "white_blood_cells",
+              -1.1012386083602905
+            ],
+            [
+              "heart_rate",
+              0.5949979424476624
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "white_blood_cells <= -1.42",
+              -0.1597375219158297
+            ],
+            [
+              "systolic_bp <= -0.65",
+              0.11662314686349508
+            ],
+            [
+              "temperature <= -0.85",
+              -0.11354453339520125
+            ]
+          ]
+        }
+      },
+      "overall_risk": "LOW",
+      "recommendations": [
+        "\u2705 Low risk across all analyzed conditions",
+        "\ud83d\udccb Standard care protocols appropriate"
+      ]
+    },
+    {
+      "patient_id": 4,
+      "diseases": {
+        "sepsis": {
+          "risk_score": "0.0017858605",
+          "risk_category": "LOW RISK",
+          "actual_outcome": false,
+          "top_shap_factors": [
+            [
+              "temperature",
+              -1.1926056146621704
+            ],
+            [
+              "systolic_bp",
+              -1.0242196321487427
+            ],
+            [
+              "white_blood_cells",
+              -0.89029860496521
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "systolic_bp > 0.29",
+              -0.028000003178911652
+            ],
+            [
+              "-1.30 < white_blood_cells <= -0.16",
+              -0.01775770715857821
+            ],
+            [
+              "ethnicity_encoded <= 0.15",
+              -0.01622993773007447
+            ]
+          ]
+        },
+        "kidney_failure": {
+          "risk_score": "0.4661078",
+          "risk_category": "MODERATE RISK",
+          "actual_outcome": false,
+          "top_shap_factors": [
+            [
+              "age",
+              1.6920770406723022
+            ],
+            [
+              "temperature",
+              -1.2950401306152344
+            ],
+            [
+              "creatinine",
+              1.0292766094207764
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "age > 0.14",
+              0.19011686992908952
+            ],
+            [
+              "creatinine > 0.82",
+              0.1561155991994824
+            ],
+            [
+              "temperature <= -0.89",
+              -0.11926258389547748
+            ]
+          ]
+        },
+        "cardiovascular": {
+          "risk_score": "0.008403908",
+          "risk_category": "LOW RISK",
+          "actual_outcome": false,
+          "top_shap_factors": [
+            [
+              "systolic_bp",
+              -1.923193335533142
+            ],
+            [
+              "age",
+              -1.4063650369644165
+            ],
+            [
+              "creatinine",
+              0.5547504425048828
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "-0.33 < systolic_bp <= 0.39",
+              -0.14222931614926101
+            ],
+            [
+              "age <= -1.00",
+              -0.12276190722056991
+            ],
+            [
+              "-1.03 < gender_encoded <= 0.97",
+              0.07227066734390304
+            ]
+          ]
+        },
+        "mortality": {
+          "risk_score": "0.16826868",
+          "risk_category": "LOW RISK",
+          "actual_outcome": false,
+          "top_shap_factors": [
+            [
+              "white_blood_cells",
+              -1.0717685222625732
+            ],
+            [
+              "temperature",
+              0.507746160030365
+            ],
+            [
+              "heart_rate",
+              -0.4113209545612335
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "white_blood_cells <= -1.42",
+              -0.17100356613550033
+            ],
+            [
+              "-0.65 < systolic_bp <= 0.08",
+              -0.0900967643428284
+            ],
+            [
+              "glucose <= -0.52",
+              0.08281087745948629
+            ]
+          ]
+        }
+      },
+      "overall_risk": "LOW",
+      "recommendations": [
+        "\u2705 Low risk across all analyzed conditions",
+        "\ud83d\udccb Standard care protocols appropriate"
+      ]
+    }
+  ],
+  "population_insights": {
+    "disease_prevalences": {
+      "sepsis": 0.05426356589147287,
+      "kidney_failure": 0.20930232558139536,
+      "cardiovascular": 0.15503875968992248,
+      "mortality": 0.31007751937984496
+    },
+    "risk_distribution": {
+      "critical": 0,
+      "high": 0,
+      "low_moderate": 5
+    }
+  }
+}

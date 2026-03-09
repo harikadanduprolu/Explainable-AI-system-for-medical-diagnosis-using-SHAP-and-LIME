@@ -2,7 +2,7 @@
 FastAPI Backend for Explainable Medical AI System
 ==================================================
 
-RESTful API for disease prediction, SHAP explanations, and what-if analysis.
+Complete REST API for disease prediction with SHAP/LIME explanations.
 
 Usage:
     uvicorn backend.main:app --reload --port 8000
@@ -10,23 +10,25 @@ Usage:
 Access:
     API: http://localhost:8000
     Docs: http://localhost:8000/docs
-    ReDoc: http://localhost:8000/redoc
+    Frontend: http://localhost:8000/app
 """
 
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, FileResponse
-from pydantic import BaseModel, Field, validator
+from fastapi.responses import FileResponse, JSONResponse
+from pydantic import BaseModel, Field
 from typing import List, Dict, Optional, Any
-import joblib
-import numpy as np
-import pandas as pd
+import sys
 from pathlib import Path
 import logging
 from datetime import datetime
-import shap
-import json
+import numpy as np
+import pandas as pd
+import joblib
+
+# Add parent directory to path
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -35,22 +37,22 @@ logger = logging.getLogger(__name__)
 # Initialize FastAPI app
 app = FastAPI(
     title="Explainable Medical AI API",
-    description="API for disease prediction with SHAP explanations and what-if analysis",
+    description="Multi-disease prediction with SHAP & LIME explanations",
     version="2.0.0",
     docs_url="/docs",
     redoc_url="/redoc"
 )
 
-# CORS middleware - Allow React frontend
+# CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173", "http://localhost:8000"],
+    allow_origins=["*"],  # In production, specify exact origins
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Static files mounting (for serving frontend)
+# Static files
 STATIC_DIR = Path(__file__).parent / "static"
 STATIC_DIR.mkdir(exist_ok=True)
 
@@ -59,135 +61,129 @@ STATIC_DIR.mkdir(exist_ok=True)
 # ============================================================================
 
 class PatientFeatures(BaseModel):
-    """Input features for a patient."""
-    age: float = Field(..., ge=18, le=100, description="Patient age in years")
-    gender: int = Field(..., ge=0, le=1, description="Gender (0=Female, 1=Male)")
+    """Patient clinical features."""
+    age: float = Field(..., ge=18, le=100, description="Age in years")
+    gender: int = Field(..., ge=0, le=1, description="0=Female, 1=Male")
     heart_rate: float = Field(..., ge=40, le=200, description="Heart rate (bpm)")
     systolic_bp: float = Field(..., ge=70, le=250, description="Systolic BP (mmHg)")
     diastolic_bp: float = Field(..., ge=40, le=150, description="Diastolic BP (mmHg)")
     temperature: float = Field(..., ge=95, le=106, description="Temperature (°F)")
-    respiratory_rate: float = Field(..., ge=8, le=50, description="Respiratory rate (breaths/min)")
-    wbc_count: float = Field(..., ge=1, le=50, description="White blood cell count (K/µL)")
+    respiratory_rate: float = Field(..., ge=8, le=50, description="Respiratory rate")
+    wbc_count: float = Field(..., ge=1, le=50, description="WBC count (K/µL)")
     hemoglobin: float = Field(..., ge=5, le=20, description="Hemoglobin (g/dL)")
     platelet_count: float = Field(..., ge=20, le=700, description="Platelet count (K/µL)")
     creatinine: float = Field(..., ge=0.3, le=15, description="Creatinine (mg/dL)")
     bun: float = Field(..., ge=5, le=200, description="BUN (mg/dL)")
     glucose: float = Field(..., ge=50, le=700, description="Glucose (mg/dL)")
     lactate: float = Field(..., ge=0.5, le=25, description="Lactate (mmol/L)")
-    
-    class Config:
-        schema_extra = {
-            "example": {
-                "age": 68,
-                "gender": 1,
-                "heart_rate": 115,
-                "systolic_bp": 95,
-                "diastolic_bp": 65,
-                "temperature": 101.5,
-                "respiratory_rate": 24,
-                "wbc_count": 16.5,
-                "hemoglobin": 10.5,
-                "platelet_count": 150,
-                "creatinine": 2.1,
-                "bun": 40,
-                "glucose": 180,
-                "lactate": 3.2
-            }
-        }
 
 
 class PredictionRequest(BaseModel):
     """Request for disease prediction."""
-    patient_id: Optional[str] = Field(None, description="Optional patient identifier")
+    patient_id: Optional[str] = Field(None, description="Patient identifier")
     features: PatientFeatures
-    diseases: Optional[List[str]] = Field(None, description="Specific diseases to predict (default: all)")
+    diseases: Optional[List[str]] = Field(None, description="Specific diseases to predict")
 
 
 class FeatureImportance(BaseModel):
-    """SHAP feature importance."""
+    """Feature importance from model."""
     feature_name: str
     importance: float
-    direction: str  # "increases" or "decreases"
     value: float
 
 
-class DiseaseRiskPrediction(BaseModel):
-    """Single disease risk prediction."""
+class DiseasePrediction(BaseModel):
+    """Single disease prediction result."""
     disease: str
-    risk_score: float = Field(..., ge=0, le=1)
+    risk_score: float
     risk_category: str
     prediction: int
-    top_features: List[FeatureImportance]
+    model_type: str
+    threshold: float
+    top_features: List[FeatureImportance] = []
 
 
 class PredictionResponse(BaseModel):
-    """Response with predictions for all diseases."""
+    """Complete prediction response."""
     patient_id: Optional[str]
-    timestamp: str
-    predictions: List[DiseaseRiskPrediction]
+    timestamp:str
+    predictions: List[DiseasePrediction]
     overall_risk_category: str
 
 
 class WhatIfRequest(BaseModel):
-    """Request for what-if scenario analysis."""
+    """What-if scenario analysis request."""
     baseline_features: PatientFeatures
     modified_features: Dict[str, float]
     disease: str
 
 
 class WhatIfResponse(BaseModel):
-    """Response for what-if analysis."""
+    """What-if analysis response."""
     disease: str
     baseline_risk: float
     new_risk: float
     risk_delta: float
     risk_delta_percent: float
-    modified_features: Dict[str, Dict[str, float]]  # {feature: {old: x, new: y}}
+    modified_features: Dict[str, Dict[str, float]]
     recommendation: str
 
 
 # ============================================================================
-# MODEL LOADING AND MANAGEMENT
+# MODEL MANAGER
 # ============================================================================
 
 class ModelManager:
-    """Manage trained models and predictions."""
+    """Manages all trained ML models."""
     
-    def __init__(self, models_dir: str = "trained_models"):
+    DISEASES = [
+        'sepsis', 'kidney_failure', 'heart_disease', 'diabetes',
+        'anemia', 'thalassemia', 'thrombocytopenia', 'cardiovascular', 'mortality'
+    ]
+    
+    def __init__(self, models_dir: str = None):
+        if models_dir is None:
+            # Default to trained_models relative to backend script location
+            models_dir = Path(__file__).parent.parent / "trained_models"
         self.models_dir = Path(models_dir)
-        self.models = {}
+        self.models: Dict[str, Any] = {}
         self.load_all_models()
     
     def load_all_models(self):
-        """Load all advanced models."""
-        diseases = [
-            'sepsis', 'kidney_failure', 'heart_disease', 'diabetes',
-            'anemia', 'thalassemia', 'thrombocytopenia', 'mortality'
-        ]
+        """Load all trained models from disk."""
+        logger.info(f"📦 Loading models from: {self.models_dir}")
         
-        for disease in diseases:
-            try:
-                model_path = self.models_dir / f"{disease}_advanced_v1.0.0.pkl"
+        for disease in self.DISEASES:
+            # Try advanced model first, then fallback to xgboost
+            for suffix in ["_advanced_v1.0.0.pkl", "_xgboost_v1.0.0.pkl"]:
+                model_path = self.models_dir / f"{disease}{suffix}"
+                
                 if model_path.exists():
-                    self.models[disease] = joblib.load(model_path)
-                    logger.info(f"✅ Loaded model: {disease}")
-                else:
-                    logger.warning(f"⚠️  Model not found: {disease}")
-            except Exception as e:
-                logger.error(f"❌ Error loading {disease}: {e}")
+                    try:
+                        bundle = joblib.load(model_path)
+                        self.models[disease] = bundle
+                        logger.info(f"  ✅ {disease:20s} - {bundle.get('model_type', 'unknown')}")
+                        break
+                    except Exception as e:
+                        logger.error(f"  ❌ {disease:20s} - Error: {e}")
+            else:
+                logger.warning(f"  ⚠️  {disease:20s} - Not found")
+        
+        logger.info(f"📊 Loaded {len(self.models)}/{len(self.DISEASES)} models")
     
     def engineer_features(self, df: pd.DataFrame) -> pd.DataFrame:
         """Engineer advanced features."""
         X = df.copy()
+        eps = 1e-6
         
         # Physiological ratios
-        X['hr_bp_ratio'] = X['heart_rate'] / (X['systolic_bp'] + 1)
-        X['shock_index'] = X['heart_rate'] / (X['systolic_bp'] + 1)
+        X['hr_bp_ratio'] = X['heart_rate'] / (X['systolic_bp'] + eps)
+        X['shock_index'] = X['heart_rate'] / (X['systolic_bp'] + eps)
         X['map'] = (X['systolic_bp'] + 2 * X['diastolic_bp']) / 3
         X['pulse_pressure'] = X['systolic_bp'] - X['diastolic_bp']
         
         # Kidney function
-        X['creat_bun_ratio'] = X['creatinine'] / (X['bun'] + 1)
+        X['creat_bun_ratio'] = X['creatinine'] / (X['bun'] + eps)
         X['kidney_damage'] = X['creatinine'] * X['bun'] / 100
         
         # Metabolic
@@ -196,9 +192,9 @@ class ModelManager:
         
         # Hematologic
         X['hemoglobin_age'] = X['hemoglobin'] * (100 - X['age']) / 100
-        X['platelet_wbc_ratio'] = X['platelet_count'] / (X['wbc_count'] + 1)
+        X['platelet_wbc_ratio'] = X['platelet_count'] / (X['wbc_count'] + eps)
         
-        # Severity scores
+        # Clinical scores
         X['sepsis_score'] = (
             (X['temperature'] > 100.4).astype(int) +
             (X['temperature'] < 96.8).astype(int) +
@@ -224,13 +220,12 @@ class ModelManager:
         X['age_squared'] = X['age'] ** 2
         X['glucose_squared'] = (X['glucose'] / 100) ** 2
         X['lactate_squared'] = X['lactate'] ** 2
-        
         X['hr_map_interaction'] = X['heart_rate'] * X['map'] / 1000
         X['temp_wbc_interaction'] = X['temperature'] * X['wbc_count'] / 100
         
         return X
     
-    def predict(self, features: PatientFeatures, disease: str) -> Dict[str, Any]:
+    def predict(self, features: PatientFeatures, disease: str) -> DiseasePrediction:
         """Make prediction for a single disease."""
         if disease not in self.models:
             raise ValueError(f"Model not found: {disease}")
@@ -241,45 +236,21 @@ class ModelManager:
         threshold = bundle.get('optimal_threshold', 0.5)
         
         # Prepare features
-        feature_dict = features.dict()
-        df = pd.DataFrame([feature_dict])
-        
-        # Engineer features
+        df = pd.DataFrame([features.dict()])
         X = self.engineer_features(df)
         
-        # Scale
-        X_scaled = scaler.transform(X)
+        # Get feature names from scaler
+        if hasattr(scaler, 'feature_names_in_'):
+            feature_names = list(scaler.feature_names_in_)
+            X = X[feature_names]
         
-        # Predict
-        risk_score = model.predict_proba(X_scaled)[0, 1]
+        # Scale and predict
+        X_scaled = scaler.transform(X)
+        risk_score = float(model.predict_proba(X_scaled)[0, 1])
         prediction = 1 if risk_score >= threshold else 0
         
-        # Calculate SHAP values (simplified - using feature importances)
-        if hasattr(model, 'feature_importances_'):
-            importances = model.feature_importances_
-            feature_names = list(X.columns)
-            
-            # Get top features
-            indices = np.argsort(importances)[-5:][::-1]
-            top_features = []
-            
-            for idx in indices:
-                feature_name = feature_names[idx]
-                importance = float(importances[idx])
-                value = float(X.iloc[0, idx])
-                direction = "increases" if value > 0 else "decreases"
-                
-                top_features.append({
-                    "feature_name": feature_name,
-                    "importance": importance,
-                    "direction": direction,
-                    "value": value
-                })
-        else:
-            top_features = []
-        
         # Risk category
-        if risk_score < 0.30:
+        if risk_score < 0.25:
             risk_category = "LOW"
         elif risk_score < 0.50:
             risk_category = "MODERATE"
@@ -288,15 +259,31 @@ class ModelManager:
         else:
             risk_category = "CRITICAL"
         
-        return {
-            "disease": disease,
-            "risk_score": float(risk_score),
-            "risk_category": risk_category,
-            "prediction": int(prediction),
-            "top_features": top_features
-        }
+        # Get top features (simplified - using model feature importances)
+        top_features = []
+        if hasattr(model, 'feature_importances_'):
+            importances = model.feature_importances_
+            indices = np.argsort(importances)[-5:][::-1]
+            
+            for idx in indices:
+                fname = feature_names[idx] if hasattr(scaler, 'feature_names_in_') else f"feature_{idx}"
+                top_features.append(FeatureImportance(
+                    feature_name=fname,
+                    importance=float(importances[idx]),
+                    value=float(X.iloc[0, idx])
+                ))
+        
+        return DiseasePrediction(
+            disease=disease,
+            risk_score=risk_score,
+            risk_category=risk_category,
+            prediction=prediction,
+            model_type=bundle.get('model_type', 'unknown'),
+            threshold=threshold,
+            top_features=top_features
+        )
     
-    def predict_all(self, features: PatientFeatures) -> List[Dict[str, Any]]:
+    def predict_all(self, features: PatientFeatures) -> List[DiseasePrediction]:
         """Predict all diseases."""
         predictions = []
         for disease in self.models.keys():
@@ -306,6 +293,8 @@ class ModelManager:
             except Exception as e:
                 logger.error(f"Error predicting {disease}: {e}")
         
+        # Sort by risk score
+        predictions.sort(key=lambda x: x.risk_score, reverse=True)
         return predictions
 
 
@@ -319,19 +308,21 @@ model_manager = ModelManager()
 
 @app.get("/")
 async def root():
-    """Root endpoint with API information."""
+    """Root endpoint."""
     return {
         "name": "Explainable Medical AI API",
         "version": "2.0.0",
         "status": "operational",
         "models_loaded": len(model_manager.models),
-        "available_diseases": list(model_manager.models.keys()),
+        "diseases": list(model_manager.models.keys()),
         "endpoints": {
             "docs": "/docs",
             "health": "/health",
             "predict": "/api/predict",
             "whatif": "/api/whatif",
-            "models": "/api/models"
+            "models": "/api/models",
+            "samples": "/api/sample-patients",
+            "frontend": "/app"
         }
     }
 
@@ -375,10 +366,10 @@ async def predict_diseases(request: PredictionRequest):
     """
     Predict disease risks for a patient.
     
-    Returns predictions for all diseases with SHAP explanations.
+    Returns predictions for all diseases with feature importances.
     """
     try:
-        # Predict all or specified diseases
+        # Predict specified or all diseases
         if request.diseases:
             predictions = []
             for disease in request.diseases:
@@ -389,7 +380,7 @@ async def predict_diseases(request: PredictionRequest):
             predictions = model_manager.predict_all(request.features)
         
         # Determine overall risk
-        max_risk = max([p['risk_score'] for p in predictions]) if predictions else 0
+        max_risk = max([p.risk_score for p in predictions]) if predictions else 0
         if max_risk < 0.30:
             overall_risk = "LOW"
         elif max_risk < 0.50:
@@ -421,15 +412,15 @@ async def whatif_analysis(request: WhatIfRequest):
     try:
         # Baseline prediction
         baseline_pred = model_manager.predict(request.baseline_features, request.disease)
-        baseline_risk = baseline_pred['risk_score']
+        baseline_risk = baseline_pred.risk_score
         
         # Modified prediction
         modified_dict = request.baseline_features.dict()
         modified_dict.update(request.modified_features)
-        
         modified_features = PatientFeatures(**modified_dict)
+        
         modified_pred = model_manager.predict(modified_features, request.disease)
-        new_risk = modified_pred['risk_score']
+        new_risk = modified_pred.risk_score
         
         # Calculate delta
         risk_delta = new_risk - baseline_risk
@@ -443,11 +434,11 @@ async def whatif_analysis(request: WhatIfRequest):
         
         # Generate recommendation
         if risk_delta < -0.1:
-            recommendation = f"Positive intervention: Risk reduced by {abs(risk_delta_percent):.1f}%"
+            recommendation = f"✅ Positive intervention: Risk reduced by {abs(risk_delta_percent):.1f}%"
         elif risk_delta > 0.1:
-            recommendation = f"Warning: Risk increased by {risk_delta_percent:.1f}%"
+            recommendation = f"⚠️ Warning: Risk increased by {risk_delta_percent:.1f}%"
         else:
-            recommendation = "Minimal impact on risk"
+            recommendation = "ℹ️ Minimal impact on risk"
         
         return WhatIfResponse(
             disease=request.disease,
@@ -460,31 +451,8 @@ async def whatif_analysis(request: WhatIfRequest):
         )
     
     except Exception as e:
-        logger.error(f"What-if analysis error: {e}")
+        logger.error(f"What-if error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.get("/api/feature-info")
-async def get_feature_info():
-    """Get information about all features and their ranges."""
-    return {
-        "features": [
-            {"name": "age", "unit": "years", "min": 18, "max": 100, "description": "Patient age"},
-            {"name": "gender", "unit": "", "min": 0, "max": 1, "description": "0=Female, 1=Male"},
-            {"name": "heart_rate", "unit": "bpm", "min": 40, "max": 200, "description": "Heart rate"},
-            {"name": "systolic_bp", "unit": "mmHg", "min": 70, "max": 250, "description": "Systolic blood pressure"},
-            {"name": "diastolic_bp", "unit": "mmHg", "min": 40, "max": 150, "description": "Diastolic blood pressure"},
-            {"name": "temperature", "unit": "°F", "min": 95, "max": 106, "description": "Body temperature"},
-            {"name": "respiratory_rate", "unit": "breaths/min", "min": 8, "max": 50, "description": "Respiratory rate"},
-            {"name": "wbc_count", "unit": "K/µL", "min": 1, "max": 50, "description": "White blood cell count"},
-            {"name": "hemoglobin", "unit": "g/dL", "min": 5, "max": 20, "description": "Hemoglobin level"},
-            {"name": "platelet_count", "unit": "K/µL", "min": 20, "max": 700, "description": "Platelet count"},
-            {"name": "creatinine", "unit": "mg/dL", "min": 0.3, "max": 15, "description": "Serum creatinine"},
-            {"name": "bun", "unit": "mg/dL", "min": 5, "max": 200, "description": "Blood urea nitrogen"},
-            {"name": "glucose", "unit": "mg/dL", "min": 50, "max": 700, "description": "Blood glucose"},
-            {"name": "lactate", "unit": "mmol/L", "min": 0.5, "max": 25, "description": "Lactate level"}
-        ]
-    }
 
 
 @app.get("/api/sample-patients")
@@ -502,7 +470,7 @@ async def get_sample_patients():
                 }
             },
             {
-                "name": "Sepsis Risk",
+                "name": "High Sepsis Risk",
                 "features": {
                     "age": 68, "gender": 1, "heart_rate": 115, "systolic_bp": 95,
                     "diastolic_bp": 65, "temperature": 101.5, "respiratory_rate": 24,
@@ -532,37 +500,54 @@ async def get_sample_patients():
     }
 
 
-# Serve static files and frontend
-@app.get("/app", response_class=HTMLResponse)
-async def serve_frontend():
-    """Serve the main frontend application."""
-    frontend_file = STATIC_DIR / "index.html"
-    if frontend_file.exists():
-        return FileResponse(frontend_file)
-    return HTMLResponse(content="<h1>Frontend not found. Please create static/index.html</h1>", status_code=404)
+# Serve frontend
+@app.get("/app")
+async def serve_app():
+    """Serve the React frontend."""
+    index_file = STATIC_DIR / "index.html"
+    if index_file.exists():
+        return FileResponse(index_file)
+    return JSONResponse(
+        content={"error": "Frontend not built yet. Run 'npm run build' in frontend directory."},
+        status_code=404
+    )
 
 
-# Mount static files for CSS, JS, etc.
-app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+# Serve medical icon
+@app.get("/medical-icon.svg")
+async def serve_icon():
+    """Serve medical icon."""
+    icon_file = STATIC_DIR / "medical-icon.svg"
+    if icon_file.exists():
+        return FileResponse(icon_file, media_type="image/svg+xml")
+    raise HTTPException(status_code=404, detail="Icon not found")
 
 
-# ============================================================================
-# STARTUP/SHUTDOWN EVENTS
-# ============================================================================
+# Mount static files for assets
+try:
+    ASSETS_DIR = STATIC_DIR / "assets"
+    if ASSETS_DIR.exists():
+        app.mount("/assets", StaticFiles(directory=str(ASSETS_DIR)), name="assets")
+except Exception as e:
+    logger.warning(f"Could not mount assets: {e}")
 
+
+# Startup event
 @app.on_event("startup")
 async def startup_event():
-    """Run on application startup."""
-    logger.info("🚀 Explainable Medical AI API starting...")
-    logger.info(f"📦 Loaded {len(model_manager.models)} models")
+    """Run on startup."""
+    logger.info("🚀 Explainable Medical AI API Starting...")
+    logger.info(f"📦 Models loaded: {len(model_manager.models)}")
+    logger.info(f"🌐 Diseases: {', '.join(model_manager.models.keys())}")
     logger.info("✅ API ready at http://localhost:8000")
-    logger.info("📚 Documentation at http://localhost:8000/docs")
+    logger.info("📚 API Docs at http://localhost:8000/docs")
+    logger.info("🎨 Frontend at http://localhost:8000/app")
 
 
 @app.on_event("shutdown")
 async def shutdown_event():
-    """Run on application shutdown."""
-    logger.info("👋 Shutting down API...")
+    """Run on shutdown."""
+    logger.info("👋 Shutting down...")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,3169 @@
+{
+  "system_info": {
+    "timestamp": "2026-03-05T14:06:35.680748",
+    "diseases_analyzed": [
+      "sepsis",
+      "kidney_failure",
+      "liver_cirrhosis",
+      "cardiovascular",
+      "mortality"
+    ],
+    "patients_processed": 10,
+    "models_trained": 4
+  },
+  "model_performance": {
+    "sepsis": {
+      "auc": 0.999669565879842,
+      "accuracy": 0.9967062581095918,
+      "f1_score": 0.994833255049319,
+      "prevalence": 0.31995767702780936
+    },
+    "kidney_failure": {
+      "auc": 0.9998585503853283,
+      "accuracy": 0.9968060684699072,
+      "f1_score": 0.9977116704805492,
+      "prevalence": 0.6990277694595836
+    },
+    "cardiovascular": {
+      "auc": 0.9995602822858165,
+      "accuracy": 0.9962072063080147,
+      "f1_score": 0.9891552511415526,
+      "prevalence": 0.17641891757002257
+    },
+    "mortality": {
+      "auc": 0.9998523714771457,
+      "accuracy": 0.9962072063080147,
+      "f1_score": 0.9921875,
+      "prevalence": 0.24106126849134574
+    }
+  },
+  "patient_reports": [
+    {
+      "patient_id": 0,
+      "timestamp": "2026-03-05T14:06:34.305300",
+      "diseases": {
+        "sepsis": {
+          "risk_score": 0.0001498036872362718,
+          "risk_category": "LOW RISK",
+          "risk_color": "\ud83d\udfe2",
+          "actual_outcome": false,
+          "description": "Sepsis and Septic Shock",
+          "shap_contributions": [
+            [
+              "AGE",
+              -7.084229469299316
+            ],
+            [
+              "ETHNICITY_ENCODED",
+              -1.6013180017471313
+            ],
+            [
+              "GENDER_ENCODED",
+              0.5264729261398315
+            ],
+            [
+              "INSURANCE_ENCODED",
+              0.2000519186258316
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED",
+              0.004690435249358416
+            ],
+            [
+              "AGE_HIGH_RISK",
+              0.0
+            ],
+            [
+              "EMERGENCY_ADMISSION",
+              0.0
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "-1.21 < ETHNICITY_ENCODED <= 0.78",
+              -0.3811112281504349
+            ],
+            [
+              "AGE <= -0.50",
+              -0.3139879934202602
+            ],
+            [
+              "INSURANCE_ENCODED <= -0.32",
+              0.049598996993479263
+            ],
+            [
+              "AGE_HIGH_RISK <= -0.65",
+              -0.011194785567037064
+            ],
+            [
+              "EMERGENCY_ADMISSION <= 0.10",
+              0.0
+            ],
+            [
+              "GENDER_ENCODED <= 0.47",
+              0.0
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED <= 0.10",
+              0.0
+            ]
+          ],
+          "recommendations": [
+            "\u2705 LOW RISK for SEPSIS - Standard care protocols appropriate",
+            "\ud83d\udccb Continue routine monitoring and current treatment plan"
+          ]
+        },
+        "kidney_failure": {
+          "risk_score": 0.000722790602594614,
+          "risk_category": "LOW RISK",
+          "risk_color": "\ud83d\udfe2",
+          "actual_outcome": false,
+          "description": "Acute and Chronic Kidney Failure",
+          "shap_contributions": [
+            [
+              "AGE",
+              -6.989257335662842
+            ],
+            [
+              "ETHNICITY_ENCODED",
+              -1.3978259563446045
+            ],
+            [
+              "GENDER_ENCODED",
+              0.7382788062095642
+            ],
+            [
+              "INSURANCE_ENCODED",
+              -0.5430350303649902
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED",
+              0.005405866540968418
+            ],
+            [
+              "EMERGENCY_ADMISSION",
+              0.001103606540709734
+            ],
+            [
+              "AGE_HIGH_RISK",
+              0.0
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "INSURANCE_ENCODED <= -0.31",
+              0.16797038674000533
+            ],
+            [
+              "AGE <= -0.50",
+              -0.11907483161732854
+            ],
+            [
+              "-1.22 < ETHNICITY_ENCODED <= 0.78",
+              -0.015809481675837258
+            ],
+            [
+              "AGE_HIGH_RISK <= -0.65",
+              0.00878924967709975
+            ],
+            [
+              "GENDER_ENCODED <= 0.47",
+              0.0
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED <= 0.10",
+              0.0
+            ],
+            [
+              "EMERGENCY_ADMISSION <= 0.10",
+              0.0
+            ]
+          ],
+          "recommendations": [
+            "\u2705 LOW RISK for KIDNEY_FAILURE - Standard care protocols appropriate",
+            "\ud83d\udccb Continue routine monitoring and current treatment plan"
+          ]
+        },
+        "cardiovascular": {
+          "risk_score": 3.054653279832564e-05,
+          "risk_category": "LOW RISK",
+          "risk_color": "\ud83d\udfe2",
+          "actual_outcome": false,
+          "description": "Cardiovascular Conditions",
+          "shap_contributions": [
+            [
+              "AGE",
+              -8.759048461914062
+            ],
+            [
+              "GENDER_ENCODED",
+              0.30003899335861206
+            ],
+            [
+              "ETHNICITY_ENCODED",
+              -0.20238827168941498
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED",
+              -0.003208537120372057
+            ],
+            [
+              "INSURANCE_ENCODED",
+              0.0
+            ],
+            [
+              "AGE_HIGH_RISK",
+              0.0
+            ],
+            [
+              "EMERGENCY_ADMISSION",
+              0.0
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "AGE <= -0.50",
+              -0.2310750243563936
+            ],
+            [
+              "-1.20 < ETHNICITY_ENCODED <= 0.79",
+              0.09165401834754867
+            ],
+            [
+              "INSURANCE_ENCODED > -0.31",
+              0.011184762408736242
+            ],
+            [
+              "AGE_HIGH_RISK <= -0.65",
+              0.007855633943723477
+            ],
+            [
+              "EMERGENCY_ADMISSION <= 0.10",
+              0.0
+            ],
+            [
+              "GENDER_ENCODED <= 0.47",
+              0.0
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED <= 0.10",
+              0.0
+            ]
+          ],
+          "recommendations": [
+            "\u2705 LOW RISK for CARDIOVASCULAR - Standard care protocols appropriate",
+            "\ud83d\udccb Continue routine monitoring and current treatment plan"
+          ]
+        },
+        "mortality": {
+          "risk_score": 0.9996917247772217,
+          "risk_category": "HIGH RISK",
+          "risk_color": "\ud83d\udd34",
+          "actual_outcome": true,
+          "description": "In-Hospital Mortality",
+          "shap_contributions": [
+            [
+              "INSURANCE_ENCODED",
+              6.106329917907715
+            ],
+            [
+              "AGE",
+              2.55033278465271
+            ],
+            [
+              "GENDER_ENCODED",
+              0.4660186171531677
+            ],
+            [
+              "ETHNICITY_ENCODED",
+              0.24962720274925232
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED",
+              0.014268549159169197
+            ],
+            [
+              "AGE_HIGH_RISK",
+              0.0
+            ],
+            [
+              "EMERGENCY_ADMISSION",
+              0.0
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "INSURANCE_ENCODED <= -0.31",
+              0.45241501389936184
+            ],
+            [
+              "AGE <= -0.51",
+              0.12572201534839345
+            ],
+            [
+              "-1.20 < ETHNICITY_ENCODED <= 0.79",
+              0.08929226557138427
+            ],
+            [
+              "AGE_HIGH_RISK <= -0.65",
+              -0.006701619819895622
+            ],
+            [
+              "GENDER_ENCODED <= 0.47",
+              0.0
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED <= 0.10",
+              0.0
+            ],
+            [
+              "EMERGENCY_ADMISSION <= 0.10",
+              0.0
+            ]
+          ],
+          "recommendations": [
+            "\ud83d\udea8 HIGH RISK for MORTALITY - Immediate clinical assessment required",
+            "\ud83c\udfe5 Consider ICU monitoring or increased observation frequency",
+            "\ud83d\udcca Review all vital signs and laboratory values closely"
+          ]
+        }
+      }
+    },
+    {
+      "patient_id": 1,
+      "timestamp": "2026-03-05T14:06:34.439647",
+      "diseases": {
+        "sepsis": {
+          "risk_score": 0.00010939618368865922,
+          "risk_category": "LOW RISK",
+          "risk_color": "\ud83d\udfe2",
+          "actual_outcome": false,
+          "description": "Sepsis and Septic Shock",
+          "shap_contributions": [
+            [
+              "AGE",
+              -6.939202308654785
+            ],
+            [
+              "ETHNICITY_ENCODED",
+              -1.6500270366668701
+            ],
+            [
+              "GENDER_ENCODED",
+              0.5264729261398315
+            ],
+            [
+              "INSURANCE_ENCODED",
+              -0.21065665781497955
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED",
+              0.004690435249358416
+            ],
+            [
+              "AGE_HIGH_RISK",
+              0.0
+            ],
+            [
+              "EMERGENCY_ADMISSION",
+              0.0
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "-1.21 < ETHNICITY_ENCODED <= 0.78",
+              -0.3968168182305209
+            ],
+            [
+              "AGE <= -0.50",
+              -0.32536964247276356
+            ],
+            [
+              "INSURANCE_ENCODED > -0.32",
+              -0.0406248428121331
+            ],
+            [
+              "AGE_HIGH_RISK <= -0.65",
+              0.002173315878111374
+            ],
+            [
+              "EMERGENCY_ADMISSION <= 0.10",
+              0.0
+            ],
+            [
+              "GENDER_ENCODED <= 0.47",
+              0.0
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED <= 0.10",
+              0.0
+            ]
+          ],
+          "recommendations": [
+            "\u2705 LOW RISK for SEPSIS - Standard care protocols appropriate",
+            "\ud83d\udccb Continue routine monitoring and current treatment plan"
+          ]
+        },
+        "kidney_failure": {
+          "risk_score": 0.9998685121536255,
+          "risk_category": "HIGH RISK",
+          "risk_color": "\ud83d\udd34",
+          "actual_outcome": true,
+          "description": "Acute and Chronic Kidney Failure",
+          "shap_contributions": [
+            [
+              "AGE",
+              4.650882244110107
+            ],
+            [
+              "GENDER_ENCODED",
+              2.271984577178955
+            ],
+            [
+              "ETHNICITY_ENCODED",
+              0.9428769946098328
+            ],
+            [
+              "INSURANCE_ENCODED",
+              0.11103639751672745
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED",
+              0.003487084060907364
+            ],
+            [
+              "EMERGENCY_ADMISSION",
+              0.003085416741669178
+            ],
+            [
+              "AGE_HIGH_RISK",
+              0.0
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "-0.50 < AGE <= -0.06",
+              0.18177640681297588
+            ],
+            [
+              "INSURANCE_ENCODED <= -0.31",
+              0.1619406227138889
+            ],
+            [
+              "ETHNICITY_ENCODED <= -1.22",
+              0.014603967791104153
+            ],
+            [
+              "AGE_HIGH_RISK <= -0.65",
+              -0.010457099078500058
+            ],
+            [
+              "GENDER_ENCODED <= 0.47",
+              0.0
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED <= 0.10",
+              0.0
+            ],
+            [
+              "EMERGENCY_ADMISSION <= 0.10",
+              0.0
+            ]
+          ],
+          "recommendations": [
+            "\ud83d\udea8 HIGH RISK for KIDNEY_FAILURE - Immediate clinical assessment required",
+            "\ud83c\udfe5 Consider ICU monitoring or increased observation frequency",
+            "\ud83d\udcca Review all vital signs and laboratory values closely",
+            "\ud83e\uddea Monitor creatinine and urea levels closely",
+            "\ud83d\udca7 Assess fluid balance and electrolyte status",
+            "\ud83d\udc8a Review nephrotoxic medications"
+          ]
+        },
+        "cardiovascular": {
+          "risk_score": 0.999230146408081,
+          "risk_category": "HIGH RISK",
+          "risk_color": "\ud83d\udd34",
+          "actual_outcome": true,
+          "description": "Cardiovascular Conditions",
+          "shap_contributions": [
+            [
+              "AGE",
+              8.807551383972168
+            ],
+            [
+              "GENDER_ENCODED",
+              0.6319032311439514
+            ],
+            [
+              "ETHNICITY_ENCODED",
+              -0.5354612469673157
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED",
+              -0.0037594677414745092
+            ],
+            [
+              "INSURANCE_ENCODED",
+              0.0
+            ],
+            [
+              "AGE_HIGH_RISK",
+              0.0
+            ],
+            [
+              "EMERGENCY_ADMISSION",
+              0.0
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "-0.06 < AGE <= 0.40",
+              0.32472206894907024
+            ],
+            [
+              "-1.20 < ETHNICITY_ENCODED <= 0.79",
+              0.08680430921330484
+            ],
+            [
+              "INSURANCE_ENCODED > -0.31",
+              0.011435580637714327
+            ],
+            [
+              "-0.65 < AGE_HIGH_RISK <= 1.54",
+              0.005747316996862821
+            ],
+            [
+              "EMERGENCY_ADMISSION <= 0.10",
+              0.0
+            ],
+            [
+              "GENDER_ENCODED <= 0.47",
+              0.0
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED <= 0.10",
+              0.0
+            ]
+          ],
+          "recommendations": [
+            "\ud83d\udea8 HIGH RISK for CARDIOVASCULAR - Immediate clinical assessment required",
+            "\ud83c\udfe5 Consider ICU monitoring or increased observation frequency",
+            "\ud83d\udcca Review all vital signs and laboratory values closely",
+            "\u2764\ufe0f Obtain ECG and cardiac enzymes",
+            "\ud83e\ude7a Monitor blood pressure and heart rhythm",
+            "\ud83d\udc8a Consider cardioprotective interventions"
+          ]
+        },
+        "mortality": {
+          "risk_score": 0.9999443292617798,
+          "risk_category": "HIGH RISK",
+          "risk_color": "\ud83d\udd34",
+          "actual_outcome": true,
+          "description": "In-Hospital Mortality",
+          "shap_contributions": [
+            [
+              "AGE",
+              7.955392837524414
+            ],
+            [
+              "GENDER_ENCODED",
+              1.9605989456176758
+            ],
+            [
+              "ETHNICITY_ENCODED",
+              1.8788856267929077
+            ],
+            [
+              "INSURANCE_ENCODED",
+              -0.7135480642318726
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED",
+              0.01749175786972046
+            ],
+            [
+              "AGE_HIGH_RISK",
+              0.0
+            ],
+            [
+              "EMERGENCY_ADMISSION",
+              0.0
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "INSURANCE_ENCODED <= -0.31",
+              0.4776604424973137
+            ],
+            [
+              "-1.20 < ETHNICITY_ENCODED <= 0.79",
+              0.08916394828650268
+            ],
+            [
+              "AGE > 0.41",
+              -0.08455043930239768
+            ],
+            [
+              "-0.65 < AGE_HIGH_RISK <= 1.54",
+              0.005918561606813569
+            ],
+            [
+              "GENDER_ENCODED <= 0.47",
+              0.0
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED <= 0.10",
+              0.0
+            ],
+            [
+              "EMERGENCY_ADMISSION <= 0.10",
+              0.0
+            ]
+          ],
+          "recommendations": [
+            "\ud83d\udea8 HIGH RISK for MORTALITY - Immediate clinical assessment required",
+            "\ud83c\udfe5 Consider ICU monitoring or increased observation frequency",
+            "\ud83d\udcca Review all vital signs and laboratory values closely"
+          ]
+        }
+      }
+    },
+    {
+      "patient_id": 2,
+      "timestamp": "2026-03-05T14:06:34.576937",
+      "diseases": {
+        "sepsis": {
+          "risk_score": 0.00038756165304221213,
+          "risk_category": "LOW RISK",
+          "risk_color": "\ud83d\udfe2",
+          "actual_outcome": false,
+          "description": "Sepsis and Septic Shock",
+          "shap_contributions": [
+            [
+              "AGE",
+              -4.288047790527344
+            ],
+            [
+              "ETHNICITY_ENCODED",
+              -3.5281858444213867
+            ],
+            [
+              "GENDER_ENCODED",
+              0.8029650449752808
+            ],
+            [
+              "INSURANCE_ENCODED",
+              0.005034321919083595
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED",
+              0.004690435249358416
+            ],
+            [
+              "AGE_HIGH_RISK",
+              0.0
+            ],
+            [
+              "EMERGENCY_ADMISSION",
+              0.0
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "-1.21 < ETHNICITY_ENCODED <= 0.78",
+              -0.37888042194237076
+            ],
+            [
+              "AGE <= -0.50",
+              -0.30122921083725757
+            ],
+            [
+              "INSURANCE_ENCODED <= -0.32",
+              0.025690896193875566
+            ],
+            [
+              "AGE_HIGH_RISK <= -0.65",
+              0.0004707948821464283
+            ],
+            [
+              "EMERGENCY_ADMISSION <= 0.10",
+              0.0
+            ],
+            [
+              "GENDER_ENCODED <= 0.47",
+              0.0
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED <= 0.10",
+              0.0
+            ]
+          ],
+          "recommendations": [
+            "\u2705 LOW RISK for SEPSIS - Standard care protocols appropriate",
+            "\ud83d\udccb Continue routine monitoring and current treatment plan"
+          ]
+        },
+        "kidney_failure": {
+          "risk_score": 0.002108238637447357,
+          "risk_category": "LOW RISK",
+          "risk_color": "\ud83d\udfe2",
+          "actual_outcome": false,
+          "description": "Acute and Chronic Kidney Failure",
+          "shap_contributions": [
+            [
+              "AGE",
+              -6.73259973526001
+            ],
+            [
+              "ETHNICITY_ENCODED",
+              -1.066551923751831
+            ],
+            [
+              "GENDER_ENCODED",
+              0.5698695778846741
+            ],
+            [
+              "INSURANCE_ENCODED",
+              0.11103639751672745
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED",
+              0.003487084060907364
+            ],
+            [
+              "EMERGENCY_ADMISSION",
+              0.0013008203823119402
+            ],
+            [
+              "AGE_HIGH_RISK",
+              0.0
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "-0.06 < AGE <= 0.39",
+              0.229155234611622
+            ],
+            [
+              "INSURANCE_ENCODED <= -0.31",
+              0.16642317764574133
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED <= 0.10",
+              -0.14678777103362092
+            ],
+            [
+              "ETHNICITY_ENCODED <= -1.22",
+              0.008505555568955606
+            ],
+            [
+              "AGE_HIGH_RISK <= -0.65",
+              0.002627836462192164
+            ],
+            [
+              "EMERGENCY_ADMISSION <= 0.10",
+              0.0
+            ],
+            [
+              "GENDER_ENCODED <= 0.47",
+              0.0
+            ]
+          ],
+          "recommendations": [
+            "\u2705 LOW RISK for KIDNEY_FAILURE - Standard care protocols appropriate",
+            "\ud83d\udccb Continue routine monitoring and current treatment plan"
+          ]
+        },
+        "cardiovascular": {
+          "risk_score": 0.9998605251312256,
+          "risk_category": "HIGH RISK",
+          "risk_color": "\ud83d\udd34",
+          "actual_outcome": true,
+          "description": "Cardiovascular Conditions",
+          "shap_contributions": [
+            [
+              "AGE",
+              5.168326377868652
+            ],
+            [
+              "GENDER_ENCODED",
+              2.784163475036621
+            ],
+            [
+              "ETHNICITY_ENCODED",
+              2.666614055633545
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED",
+              -0.009492520242929459
+            ],
+            [
+              "INSURANCE_ENCODED",
+              0.0
+            ],
+            [
+              "AGE_HIGH_RISK",
+              0.0
+            ],
+            [
+              "EMERGENCY_ADMISSION",
+              0.0
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "AGE > 0.40",
+              0.11834530460594615
+            ],
+            [
+              "-1.20 < ETHNICITY_ENCODED <= 0.79",
+              0.10689150756152112
+            ],
+            [
+              "INSURANCE_ENCODED <= -0.31",
+              -0.0019185226821755391
+            ],
+            [
+              "-0.65 < AGE_HIGH_RISK <= 1.54",
+              0.0007969644680740094
+            ],
+            [
+              "EMERGENCY_ADMISSION <= 0.10",
+              0.0
+            ],
+            [
+              "GENDER_ENCODED <= 0.47",
+              0.0
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED <= 0.10",
+              0.0
+            ]
+          ],
+          "recommendations": [
+            "\ud83d\udea8 HIGH RISK for CARDIOVASCULAR - Immediate clinical assessment required",
+            "\ud83c\udfe5 Consider ICU monitoring or increased observation frequency",
+            "\ud83d\udcca Review all vital signs and laboratory values closely",
+            "\u2764\ufe0f Obtain ECG and cardiac enzymes",
+            "\ud83e\ude7a Monitor blood pressure and heart rhythm",
+            "\ud83d\udc8a Consider cardioprotective interventions"
+          ]
+        },
+        "mortality": {
+          "risk_score": 0.9996917247772217,
+          "risk_category": "HIGH RISK",
+          "risk_color": "\ud83d\udd34",
+          "actual_outcome": true,
+          "description": "In-Hospital Mortality",
+          "shap_contributions": [
+            [
+              "INSURANCE_ENCODED",
+              6.106329917907715
+            ],
+            [
+              "AGE",
+              2.55033278465271
+            ],
+            [
+              "GENDER_ENCODED",
+              0.4660186171531677
+            ],
+            [
+              "ETHNICITY_ENCODED",
+              0.24962720274925232
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED",
+              0.014268549159169197
+            ],
+            [
+              "AGE_HIGH_RISK",
+              0.0
+            ],
+            [
+              "EMERGENCY_ADMISSION",
+              0.0
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "INSURANCE_ENCODED <= -0.31",
+              0.49509850310776327
+            ],
+            [
+              "AGE <= -0.51",
+              0.10365424816295477
+            ],
+            [
+              "-1.20 < ETHNICITY_ENCODED <= 0.79",
+              0.09790044590973974
+            ],
+            [
+              "AGE_HIGH_RISK <= -0.65",
+              0.003922853965224593
+            ],
+            [
+              "GENDER_ENCODED <= 0.47",
+              0.0
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED <= 0.10",
+              0.0
+            ],
+            [
+              "EMERGENCY_ADMISSION <= 0.10",
+              0.0
+            ]
+          ],
+          "recommendations": [
+            "\ud83d\udea8 HIGH RISK for MORTALITY - Immediate clinical assessment required",
+            "\ud83c\udfe5 Consider ICU monitoring or increased observation frequency",
+            "\ud83d\udcca Review all vital signs and laboratory values closely"
+          ]
+        }
+      }
+    },
+    {
+      "patient_id": 3,
+      "timestamp": "2026-03-05T14:06:34.696423",
+      "diseases": {
+        "sepsis": {
+          "risk_score": 0.9997878670692444,
+          "risk_category": "HIGH RISK",
+          "risk_color": "\ud83d\udd34",
+          "actual_outcome": true,
+          "description": "Sepsis and Septic Shock",
+          "shap_contributions": [
+            [
+              "AGE",
+              9.492181777954102
+            ],
+            [
+              "ETHNICITY_ENCODED",
+              -1.279194712638855
+            ],
+            [
+              "GENDER_ENCODED",
+              0.9351948499679565
+            ],
+            [
+              "INSURANCE_ENCODED",
+              0.15692974627017975
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED",
+              0.004690435249358416
+            ],
+            [
+              "AGE_HIGH_RISK",
+              0.0
+            ],
+            [
+              "EMERGENCY_ADMISSION",
+              0.0
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "-0.50 < AGE <= -0.06",
+              0.756473951246722
+            ],
+            [
+              "-1.21 < ETHNICITY_ENCODED <= 0.78",
+              -0.38701497281182623
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED <= 0.10",
+              -0.23342983319861488
+            ],
+            [
+              "INSURANCE_ENCODED <= -0.32",
+              0.03294805711018592
+            ],
+            [
+              "AGE_HIGH_RISK <= -0.65",
+              -0.0007184275639759808
+            ],
+            [
+              "EMERGENCY_ADMISSION <= 0.10",
+              0.0
+            ],
+            [
+              "GENDER_ENCODED <= 0.47",
+              0.0
+            ]
+          ],
+          "recommendations": [
+            "\ud83d\udea8 HIGH RISK for SEPSIS - Immediate clinical assessment required",
+            "\ud83c\udfe5 Consider ICU monitoring or increased observation frequency",
+            "\ud83d\udcca Review all vital signs and laboratory values closely",
+            "\ud83e\uddea Consider blood cultures and lactate levels",
+            "\ud83d\udc8a Evaluate need for empirical antibiotic therapy",
+            "\ud83d\udca7 Monitor fluid balance and hemodynamic status"
+          ]
+        },
+        "kidney_failure": {
+          "risk_score": 0.00039741236832924187,
+          "risk_category": "LOW RISK",
+          "risk_color": "\ud83d\udfe2",
+          "actual_outcome": false,
+          "description": "Acute and Chronic Kidney Failure",
+          "shap_contributions": [
+            [
+              "AGE",
+              -8.039490699768066
+            ],
+            [
+              "ETHNICITY_ENCODED",
+              -1.3107998371124268
+            ],
+            [
+              "GENDER_ENCODED",
+              0.4410609304904938
+            ],
+            [
+              "INSURANCE_ENCODED",
+              0.12004593014717102
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED",
+              0.005405866540968418
+            ],
+            [
+              "EMERGENCY_ADMISSION",
+              -2.2059539332985878e-05
+            ],
+            [
+              "AGE_HIGH_RISK",
+              0.0
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "INSURANCE_ENCODED <= -0.31",
+              0.1690125430265397
+            ],
+            [
+              "AGE <= -0.50",
+              -0.10351156231634832
+            ],
+            [
+              "-1.22 < ETHNICITY_ENCODED <= 0.78",
+              -0.011850694821099753
+            ],
+            [
+              "AGE_HIGH_RISK <= -0.65",
+              -5.5527145130871864e-05
+            ],
+            [
+              "GENDER_ENCODED <= 0.47",
+              0.0
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED <= 0.10",
+              0.0
+            ],
+            [
+              "EMERGENCY_ADMISSION <= 0.10",
+              0.0
+            ]
+          ],
+          "recommendations": [
+            "\u2705 LOW RISK for KIDNEY_FAILURE - Standard care protocols appropriate",
+            "\ud83d\udccb Continue routine monitoring and current treatment plan"
+          ]
+        },
+        "cardiovascular": {
+          "risk_score": 3.054653279832564e-05,
+          "risk_category": "LOW RISK",
+          "risk_color": "\ud83d\udfe2",
+          "actual_outcome": false,
+          "description": "Cardiovascular Conditions",
+          "shap_contributions": [
+            [
+              "AGE",
+              -8.759048461914062
+            ],
+            [
+              "GENDER_ENCODED",
+              0.30003899335861206
+            ],
+            [
+              "ETHNICITY_ENCODED",
+              -0.20238827168941498
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED",
+              -0.003208537120372057
+            ],
+            [
+              "INSURANCE_ENCODED",
+              0.0
+            ],
+            [
+              "AGE_HIGH_RISK",
+              0.0
+            ],
+            [
+              "EMERGENCY_ADMISSION",
+              0.0
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "AGE <= -0.50",
+              -0.22902310759833086
+            ],
+            [
+              "-1.20 < ETHNICITY_ENCODED <= 0.79",
+              0.09564594183936188
+            ],
+            [
+              "INSURANCE_ENCODED <= -0.31",
+              -0.005951601897449394
+            ],
+            [
+              "AGE_HIGH_RISK <= -0.65",
+              -0.0020565438362105636
+            ],
+            [
+              "EMERGENCY_ADMISSION <= 0.10",
+              0.0
+            ],
+            [
+              "GENDER_ENCODED <= 0.47",
+              0.0
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED <= 0.10",
+              0.0
+            ]
+          ],
+          "recommendations": [
+            "\u2705 LOW RISK for CARDIOVASCULAR - Standard care protocols appropriate",
+            "\ud83d\udccb Continue routine monitoring and current treatment plan"
+          ]
+        },
+        "mortality": {
+          "risk_score": 0.0015184900257736444,
+          "risk_category": "LOW RISK",
+          "risk_color": "\ud83d\udfe2",
+          "actual_outcome": false,
+          "description": "In-Hospital Mortality",
+          "shap_contributions": [
+            [
+              "AGE",
+              -3.9180803298950195
+            ],
+            [
+              "INSURANCE_ENCODED",
+              -0.8298196792602539
+            ],
+            [
+              "GENDER_ENCODED",
+              -0.48155972361564636
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED",
+              0.036268945783376694
+            ],
+            [
+              "ETHNICITY_ENCODED",
+              0.006967400200664997
+            ],
+            [
+              "AGE_HIGH_RISK",
+              0.0
+            ],
+            [
+              "EMERGENCY_ADMISSION",
+              0.0
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "INSURANCE_ENCODED > -0.31",
+              -0.5066217881681255
+            ],
+            [
+              "-1.20 < ETHNICITY_ENCODED <= 0.79",
+              0.11145000556119042
+            ],
+            [
+              "-0.06 < AGE <= 0.41",
+              -0.0470912538033394
+            ],
+            [
+              "-0.65 < AGE_HIGH_RISK <= 1.54",
+              -0.012764086585616551
+            ],
+            [
+              "EMERGENCY_ADMISSION <= 0.10",
+              0.0
+            ],
+            [
+              "GENDER_ENCODED <= 0.47",
+              0.0
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED <= 0.10",
+              0.0
+            ]
+          ],
+          "recommendations": [
+            "\u2705 LOW RISK for MORTALITY - Standard care protocols appropriate",
+            "\ud83d\udccb Continue routine monitoring and current treatment plan"
+          ]
+        }
+      }
+    },
+    {
+      "patient_id": 4,
+      "timestamp": "2026-03-05T14:06:34.821589",
+      "diseases": {
+        "sepsis": {
+          "risk_score": 0.9998781681060791,
+          "risk_category": "HIGH RISK",
+          "risk_color": "\ud83d\udd34",
+          "actual_outcome": true,
+          "description": "Sepsis and Septic Shock",
+          "shap_contributions": [
+            [
+              "ETHNICITY_ENCODED",
+              7.151761531829834
+            ],
+            [
+              "AGE",
+              1.9821703433990479
+            ],
+            [
+              "GENDER_ENCODED",
+              0.6550865769386292
+            ],
+            [
+              "INSURANCE_ENCODED",
+              0.07274413108825684
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED",
+              0.0028501811902970076
+            ],
+            [
+              "AGE_HIGH_RISK",
+              0.0
+            ],
+            [
+              "EMERGENCY_ADMISSION",
+              0.0
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "-0.50 < AGE <= -0.06",
+              0.7518601317886626
+            ],
+            [
+              "ETHNICITY_ENCODED <= -1.21",
+              0.3670643644383375
+            ],
+            [
+              "INSURANCE_ENCODED <= -0.32",
+              0.04375298656700863
+            ],
+            [
+              "AGE_HIGH_RISK <= -0.65",
+              0.0009591156063586076
+            ],
+            [
+              "EMERGENCY_ADMISSION <= 0.10",
+              0.0
+            ],
+            [
+              "GENDER_ENCODED <= 0.47",
+              0.0
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED <= 0.10",
+              0.0
+            ]
+          ],
+          "recommendations": [
+            "\ud83d\udea8 HIGH RISK for SEPSIS - Immediate clinical assessment required",
+            "\ud83c\udfe5 Consider ICU monitoring or increased observation frequency",
+            "\ud83d\udcca Review all vital signs and laboratory values closely",
+            "\ud83e\uddea Consider blood cultures and lactate levels",
+            "\ud83d\udc8a Evaluate need for empirical antibiotic therapy",
+            "\ud83d\udca7 Monitor fluid balance and hemodynamic status"
+          ]
+        },
+        "kidney_failure": {
+          "risk_score": 0.9998685121536255,
+          "risk_category": "HIGH RISK",
+          "risk_color": "\ud83d\udd34",
+          "actual_outcome": true,
+          "description": "Acute and Chronic Kidney Failure",
+          "shap_contributions": [
+            [
+              "AGE",
+              4.650882244110107
+            ],
+            [
+              "GENDER_ENCODED",
+              2.271984577178955
+            ],
+            [
+              "ETHNICITY_ENCODED",
+              0.9428769946098328
+            ],
+            [
+              "INSURANCE_ENCODED",
+              0.11103639751672745
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED",
+              0.003487084060907364
+            ],
+            [
+              "EMERGENCY_ADMISSION",
+              0.003085416741669178
+            ],
+            [
+              "AGE_HIGH_RISK",
+              0.0
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "-0.50 < AGE <= -0.06",
+              0.17759490236541547
+            ],
+            [
+              "INSURANCE_ENCODED <= -0.31",
+              0.17656473212772303
+            ],
+            [
+              "ETHNICITY_ENCODED <= -1.22",
+              0.015322688748609497
+            ],
+            [
+              "AGE_HIGH_RISK <= -0.65",
+              -0.0015178723017317483
+            ],
+            [
+              "GENDER_ENCODED <= 0.47",
+              0.0
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED <= 0.10",
+              0.0
+            ],
+            [
+              "EMERGENCY_ADMISSION <= 0.10",
+              0.0
+            ]
+          ],
+          "recommendations": [
+            "\ud83d\udea8 HIGH RISK for KIDNEY_FAILURE - Immediate clinical assessment required",
+            "\ud83c\udfe5 Consider ICU monitoring or increased observation frequency",
+            "\ud83d\udcca Review all vital signs and laboratory values closely",
+            "\ud83e\uddea Monitor creatinine and urea levels closely",
+            "\ud83d\udca7 Assess fluid balance and electrolyte status",
+            "\ud83d\udc8a Review nephrotoxic medications"
+          ]
+        },
+        "cardiovascular": {
+          "risk_score": 3.054653279832564e-05,
+          "risk_category": "LOW RISK",
+          "risk_color": "\ud83d\udfe2",
+          "actual_outcome": false,
+          "description": "Cardiovascular Conditions",
+          "shap_contributions": [
+            [
+              "AGE",
+              -8.759048461914062
+            ],
+            [
+              "GENDER_ENCODED",
+              0.30003899335861206
+            ],
+            [
+              "ETHNICITY_ENCODED",
+              -0.20238827168941498
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED",
+              -0.003208537120372057
+            ],
+            [
+              "INSURANCE_ENCODED",
+              0.0
+            ],
+            [
+              "AGE_HIGH_RISK",
+              0.0
+            ],
+            [
+              "EMERGENCY_ADMISSION",
+              0.0
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "AGE <= -0.50",
+              -0.21655764918263376
+            ],
+            [
+              "-1.20 < ETHNICITY_ENCODED <= 0.79",
+              0.08464552395398432
+            ],
+            [
+              "AGE_HIGH_RISK <= -0.65",
+              0.003882316690988326
+            ],
+            [
+              "INSURANCE_ENCODED <= -0.31",
+              0.0019438249816984426
+            ],
+            [
+              "GENDER_ENCODED <= 0.47",
+              0.0
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED <= 0.10",
+              0.0
+            ],
+            [
+              "EMERGENCY_ADMISSION <= 0.10",
+              0.0
+            ]
+          ],
+          "recommendations": [
+            "\u2705 LOW RISK for CARDIOVASCULAR - Standard care protocols appropriate",
+            "\ud83d\udccb Continue routine monitoring and current treatment plan"
+          ]
+        },
+        "mortality": {
+          "risk_score": 0.9993417859077454,
+          "risk_category": "HIGH RISK",
+          "risk_color": "\ud83d\udd34",
+          "actual_outcome": true,
+          "description": "In-Hospital Mortality",
+          "shap_contributions": [
+            [
+              "INSURANCE_ENCODED",
+              4.575160026550293
+            ],
+            [
+              "AGE",
+              3.5144119262695312
+            ],
+            [
+              "GENDER_ENCODED",
+              0.5004564523696899
+            ],
+            [
+              "ETHNICITY_ENCODED",
+              0.02337629906833172
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED",
+              0.014268549159169197
+            ],
+            [
+              "AGE_HIGH_RISK",
+              0.0
+            ],
+            [
+              "EMERGENCY_ADMISSION",
+              0.0
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "INSURANCE_ENCODED > -0.31",
+              -0.4960755570993508
+            ],
+            [
+              "-1.20 < ETHNICITY_ENCODED <= 0.79",
+              0.08224976433718507
+            ],
+            [
+              "-0.51 < AGE <= -0.06",
+              -0.039200367013542084
+            ],
+            [
+              "AGE_HIGH_RISK <= -0.65",
+              -0.0030863577037776972
+            ],
+            [
+              "GENDER_ENCODED <= 0.47",
+              0.0
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED <= 0.10",
+              0.0
+            ],
+            [
+              "EMERGENCY_ADMISSION <= 0.10",
+              0.0
+            ]
+          ],
+          "recommendations": [
+            "\ud83d\udea8 HIGH RISK for MORTALITY - Immediate clinical assessment required",
+            "\ud83c\udfe5 Consider ICU monitoring or increased observation frequency",
+            "\ud83d\udcca Review all vital signs and laboratory values closely"
+          ]
+        }
+      }
+    },
+    {
+      "patient_id": 5,
+      "timestamp": "2026-03-05T14:06:34.937331",
+      "diseases": {
+        "sepsis": {
+          "risk_score": 0.9996659755706787,
+          "risk_category": "HIGH RISK",
+          "risk_color": "\ud83d\udd34",
+          "actual_outcome": true,
+          "description": "Sepsis and Septic Shock",
+          "shap_contributions": [
+            [
+              "ETHNICITY_ENCODED",
+              7.226734161376953
+            ],
+            [
+              "AGE",
+              0.918246328830719
+            ],
+            [
+              "GENDER_ENCODED",
+              0.6706650257110596
+            ],
+            [
+              "INSURANCE_ENCODED",
+              0.03727481886744499
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED",
+              0.0028501811902970076
+            ],
+            [
+              "AGE_HIGH_RISK",
+              0.0
+            ],
+            [
+              "EMERGENCY_ADMISSION",
+              0.0
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "ETHNICITY_ENCODED <= -1.21",
+              0.41605501294939284
+            ],
+            [
+              "-0.06 < AGE <= 0.40",
+              -0.23930041681730718
+            ],
+            [
+              "INSURANCE_ENCODED <= -0.32",
+              0.029536318511733075
+            ],
+            [
+              "AGE_HIGH_RISK <= -0.65",
+              -0.015057727759567678
+            ],
+            [
+              "EMERGENCY_ADMISSION <= 0.10",
+              0.0
+            ],
+            [
+              "GENDER_ENCODED <= 0.47",
+              0.0
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED <= 0.10",
+              0.0
+            ]
+          ],
+          "recommendations": [
+            "\ud83d\udea8 HIGH RISK for SEPSIS - Immediate clinical assessment required",
+            "\ud83c\udfe5 Consider ICU monitoring or increased observation frequency",
+            "\ud83d\udcca Review all vital signs and laboratory values closely",
+            "\ud83e\uddea Consider blood cultures and lactate levels",
+            "\ud83d\udc8a Evaluate need for empirical antibiotic therapy",
+            "\ud83d\udca7 Monitor fluid balance and hemodynamic status"
+          ]
+        },
+        "kidney_failure": {
+          "risk_score": 0.005525005981326103,
+          "risk_category": "LOW RISK",
+          "risk_color": "\ud83d\udfe2",
+          "actual_outcome": false,
+          "description": "Acute and Chronic Kidney Failure",
+          "shap_contributions": [
+            [
+              "GENDER_ENCODED",
+              -4.183086395263672
+            ],
+            [
+              "AGE",
+              -1.5441001653671265
+            ],
+            [
+              "ETHNICITY_ENCODED",
+              -0.19816051423549652
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED",
+              -0.1382475197315216
+            ],
+            [
+              "EMERGENCY_ADMISSION",
+              -0.11063069105148315
+            ],
+            [
+              "INSURANCE_ENCODED",
+              0.027632782235741615
+            ],
+            [
+              "AGE_HIGH_RISK",
+              0.0
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "AGE > 0.39",
+              -0.3171684437448371
+            ],
+            [
+              "INSURANCE_ENCODED <= -0.31",
+              0.1655819679093931
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED <= 0.10",
+              -0.04280902799486809
+            ],
+            [
+              "-1.22 < ETHNICITY_ENCODED <= 0.78",
+              -0.008324454217788962
+            ],
+            [
+              "-0.65 < AGE_HIGH_RISK <= 1.53",
+              -0.003956253227338304
+            ],
+            [
+              "EMERGENCY_ADMISSION <= 0.10",
+              0.0
+            ],
+            [
+              "GENDER_ENCODED <= 0.47",
+              0.0
+            ]
+          ],
+          "recommendations": [
+            "\u2705 LOW RISK for KIDNEY_FAILURE - Standard care protocols appropriate",
+            "\ud83d\udccb Continue routine monitoring and current treatment plan"
+          ]
+        },
+        "cardiovascular": {
+          "risk_score": 2.7997351935482584e-05,
+          "risk_category": "LOW RISK",
+          "risk_color": "\ud83d\udfe2",
+          "actual_outcome": false,
+          "description": "Cardiovascular Conditions",
+          "shap_contributions": [
+            [
+              "AGE",
+              -8.967498779296875
+            ],
+            [
+              "GENDER_ENCODED",
+              0.36576592922210693
+            ],
+            [
+              "ETHNICITY_ENCODED",
+              -0.14688847959041595
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED",
+              -0.0031294873915612698
+            ],
+            [
+              "INSURANCE_ENCODED",
+              0.0
+            ],
+            [
+              "AGE_HIGH_RISK",
+              0.0
+            ],
+            [
+              "EMERGENCY_ADMISSION",
+              0.0
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "-0.50 < AGE <= -0.06",
+              -0.19598689503385353
+            ],
+            [
+              "ETHNICITY_ENCODED <= -1.20",
+              -0.09452107376934027
+            ],
+            [
+              "AGE_HIGH_RISK <= -0.65",
+              -0.011616067991802327
+            ],
+            [
+              "INSURANCE_ENCODED <= -0.31",
+              0.0023502317999374747
+            ],
+            [
+              "GENDER_ENCODED <= 0.47",
+              0.0
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED <= 0.10",
+              0.0
+            ],
+            [
+              "EMERGENCY_ADMISSION <= 0.10",
+              0.0
+            ]
+          ],
+          "recommendations": [
+            "\u2705 LOW RISK for CARDIOVASCULAR - Standard care protocols appropriate",
+            "\ud83d\udccb Continue routine monitoring and current treatment plan"
+          ]
+        },
+        "mortality": {
+          "risk_score": 0.7656797170639038,
+          "risk_category": "HIGH RISK",
+          "risk_color": "\ud83d\udd34",
+          "actual_outcome": true,
+          "description": "In-Hospital Mortality",
+          "shap_contributions": [
+            [
+              "AGE",
+              3.0067553520202637
+            ],
+            [
+              "INSURANCE_ENCODED",
+              -0.7223501801490784
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED",
+              0.08207771182060242
+            ],
+            [
+              "ETHNICITY_ENCODED",
+              0.06596999615430832
+            ],
+            [
+              "GENDER_ENCODED",
+              0.053919076919555664
+            ],
+            [
+              "AGE_HIGH_RISK",
+              0.0
+            ],
+            [
+              "EMERGENCY_ADMISSION",
+              0.0
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "INSURANCE_ENCODED <= -0.31",
+              0.49055419212819185
+            ],
+            [
+              "-1.20 < ETHNICITY_ENCODED <= 0.79",
+              0.10170136746928225
+            ],
+            [
+              "AGE > 0.41",
+              -0.0627329313507209
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED <= 0.10",
+              -0.012096049535732938
+            ],
+            [
+              "-0.65 < AGE_HIGH_RISK <= 1.54",
+              0.004868167230783078
+            ],
+            [
+              "GENDER_ENCODED <= 0.47",
+              0.0
+            ],
+            [
+              "EMERGENCY_ADMISSION <= 0.10",
+              0.0
+            ]
+          ],
+          "recommendations": [
+            "\ud83d\udea8 HIGH RISK for MORTALITY - Immediate clinical assessment required",
+            "\ud83c\udfe5 Consider ICU monitoring or increased observation frequency",
+            "\ud83d\udcca Review all vital signs and laboratory values closely"
+          ]
+        }
+      }
+    },
+    {
+      "patient_id": 6,
+      "timestamp": "2026-03-05T14:06:35.058715",
+      "diseases": {
+        "sepsis": {
+          "risk_score": 0.00038756165304221213,
+          "risk_category": "LOW RISK",
+          "risk_color": "\ud83d\udfe2",
+          "actual_outcome": false,
+          "description": "Sepsis and Septic Shock",
+          "shap_contributions": [
+            [
+              "AGE",
+              -4.288047790527344
+            ],
+            [
+              "ETHNICITY_ENCODED",
+              -3.5281858444213867
+            ],
+            [
+              "GENDER_ENCODED",
+              0.8029650449752808
+            ],
+            [
+              "INSURANCE_ENCODED",
+              0.005034321919083595
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED",
+              0.004690435249358416
+            ],
+            [
+              "AGE_HIGH_RISK",
+              0.0
+            ],
+            [
+              "EMERGENCY_ADMISSION",
+              0.0
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "-1.21 < ETHNICITY_ENCODED <= 0.78",
+              -0.38979578662197617
+            ],
+            [
+              "AGE <= -0.50",
+              -0.29593887226930554
+            ],
+            [
+              "INSURANCE_ENCODED <= -0.32",
+              0.034098085906480044
+            ],
+            [
+              "AGE_HIGH_RISK <= -0.65",
+              0.0018450281992640006
+            ],
+            [
+              "GENDER_ENCODED <= 0.47",
+              0.0
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED <= 0.10",
+              0.0
+            ],
+            [
+              "EMERGENCY_ADMISSION <= 0.10",
+              0.0
+            ]
+          ],
+          "recommendations": [
+            "\u2705 LOW RISK for SEPSIS - Standard care protocols appropriate",
+            "\ud83d\udccb Continue routine monitoring and current treatment plan"
+          ]
+        },
+        "kidney_failure": {
+          "risk_score": 0.9996204376220703,
+          "risk_category": "HIGH RISK",
+          "risk_color": "\ud83d\udd34",
+          "actual_outcome": true,
+          "description": "Acute and Chronic Kidney Failure",
+          "shap_contributions": [
+            [
+              "AGE",
+              4.53604793548584
+            ],
+            [
+              "GENDER_ENCODED",
+              2.433540105819702
+            ],
+            [
+              "ETHNICITY_ENCODED",
+              -0.2182098776102066
+            ],
+            [
+              "INSURANCE_ENCODED",
+              0.1638869345188141
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED",
+              0.005405866540968418
+            ],
+            [
+              "EMERGENCY_ADMISSION",
+              0.0016983733512461185
+            ],
+            [
+              "AGE_HIGH_RISK",
+              0.0
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "INSURANCE_ENCODED > -0.31",
+              -0.1705240281921109
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED <= 0.10",
+              0.09624406916143133
+            ],
+            [
+              "AGE <= -0.50",
+              -0.09583555264932911
+            ],
+            [
+              "AGE_HIGH_RISK <= -0.65",
+              -0.005462255328339641
+            ],
+            [
+              "-1.22 < ETHNICITY_ENCODED <= 0.78",
+              -0.003092831643101305
+            ],
+            [
+              "GENDER_ENCODED <= 0.47",
+              0.0
+            ],
+            [
+              "EMERGENCY_ADMISSION <= 0.10",
+              0.0
+            ]
+          ],
+          "recommendations": [
+            "\ud83d\udea8 HIGH RISK for KIDNEY_FAILURE - Immediate clinical assessment required",
+            "\ud83c\udfe5 Consider ICU monitoring or increased observation frequency",
+            "\ud83d\udcca Review all vital signs and laboratory values closely",
+            "\ud83e\uddea Monitor creatinine and urea levels closely",
+            "\ud83d\udca7 Assess fluid balance and electrolyte status",
+            "\ud83d\udc8a Review nephrotoxic medications"
+          ]
+        },
+        "cardiovascular": {
+          "risk_score": 0.0002569157804828137,
+          "risk_category": "LOW RISK",
+          "risk_color": "\ud83d\udfe2",
+          "actual_outcome": false,
+          "description": "Cardiovascular Conditions",
+          "shap_contributions": [
+            [
+              "AGE",
+              -4.7363481521606445
+            ],
+            [
+              "GENDER_ENCODED",
+              -0.9851649403572083
+            ],
+            [
+              "ETHNICITY_ENCODED",
+              -0.777622640132904
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED",
+              -0.035744331777095795
+            ],
+            [
+              "INSURANCE_ENCODED",
+              0.0
+            ],
+            [
+              "AGE_HIGH_RISK",
+              0.0
+            ],
+            [
+              "EMERGENCY_ADMISSION",
+              0.0
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "-0.06 < AGE <= 0.40",
+              0.33356600245835777
+            ],
+            [
+              "-1.20 < ETHNICITY_ENCODED <= 0.79",
+              0.08384883694411732
+            ],
+            [
+              "-0.65 < AGE_HIGH_RISK <= 1.54",
+              -0.009911822767047418
+            ],
+            [
+              "INSURANCE_ENCODED <= -0.31",
+              0.0005871451937107818
+            ],
+            [
+              "EMERGENCY_ADMISSION <= 0.10",
+              0.0
+            ],
+            [
+              "GENDER_ENCODED <= 0.47",
+              0.0
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED <= 0.10",
+              0.0
+            ]
+          ],
+          "recommendations": [
+            "\u2705 LOW RISK for CARDIOVASCULAR - Standard care protocols appropriate",
+            "\ud83d\udccb Continue routine monitoring and current treatment plan"
+          ]
+        },
+        "mortality": {
+          "risk_score": 0.9996917247772217,
+          "risk_category": "HIGH RISK",
+          "risk_color": "\ud83d\udd34",
+          "actual_outcome": true,
+          "description": "In-Hospital Mortality",
+          "shap_contributions": [
+            [
+              "INSURANCE_ENCODED",
+              6.106329917907715
+            ],
+            [
+              "AGE",
+              2.55033278465271
+            ],
+            [
+              "GENDER_ENCODED",
+              0.4660186171531677
+            ],
+            [
+              "ETHNICITY_ENCODED",
+              0.24962720274925232
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED",
+              0.014268549159169197
+            ],
+            [
+              "AGE_HIGH_RISK",
+              0.0
+            ],
+            [
+              "EMERGENCY_ADMISSION",
+              0.0
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "INSURANCE_ENCODED <= -0.31",
+              0.4888624090197195
+            ],
+            [
+              "AGE <= -0.51",
+              0.10681983970532441
+            ],
+            [
+              "-1.20 < ETHNICITY_ENCODED <= 0.79",
+              0.08228500061848275
+            ],
+            [
+              "AGE_HIGH_RISK <= -0.65",
+              -0.005307919617498482
+            ],
+            [
+              "EMERGENCY_ADMISSION <= 0.10",
+              0.0
+            ],
+            [
+              "GENDER_ENCODED <= 0.47",
+              0.0
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED <= 0.10",
+              0.0
+            ]
+          ],
+          "recommendations": [
+            "\ud83d\udea8 HIGH RISK for MORTALITY - Immediate clinical assessment required",
+            "\ud83c\udfe5 Consider ICU monitoring or increased observation frequency",
+            "\ud83d\udcca Review all vital signs and laboratory values closely"
+          ]
+        }
+      }
+    },
+    {
+      "patient_id": 7,
+      "timestamp": "2026-03-05T14:06:35.189722",
+      "diseases": {
+        "sepsis": {
+          "risk_score": 0.0003069407830480486,
+          "risk_category": "LOW RISK",
+          "risk_color": "\ud83d\udfe2",
+          "actual_outcome": false,
+          "description": "Sepsis and Septic Shock",
+          "shap_contributions": [
+            [
+              "ETHNICITY_ENCODED",
+              -4.458314418792725
+            ],
+            [
+              "AGE",
+              -3.4543910026550293
+            ],
+            [
+              "GENDER_ENCODED",
+              0.669269859790802
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED",
+              0.004690435249358416
+            ],
+            [
+              "INSURANCE_ENCODED",
+              0.001900683157145977
+            ],
+            [
+              "AGE_HIGH_RISK",
+              0.0
+            ],
+            [
+              "EMERGENCY_ADMISSION",
+              0.0
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "-1.21 < ETHNICITY_ENCODED <= 0.78",
+              -0.39134410943349324
+            ],
+            [
+              "AGE > 0.40",
+              -0.17108755557364724
+            ],
+            [
+              "INSURANCE_ENCODED <= -0.32",
+              0.04761673406597952
+            ],
+            [
+              "-0.65 < AGE_HIGH_RISK <= 1.54",
+              0.002561646763555499
+            ],
+            [
+              "EMERGENCY_ADMISSION <= 0.10",
+              0.0
+            ],
+            [
+              "GENDER_ENCODED <= 0.47",
+              0.0
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED <= 0.10",
+              0.0
+            ]
+          ],
+          "recommendations": [
+            "\u2705 LOW RISK for SEPSIS - Standard care protocols appropriate",
+            "\ud83d\udccb Continue routine monitoring and current treatment plan"
+          ]
+        },
+        "kidney_failure": {
+          "risk_score": 0.9998685121536255,
+          "risk_category": "HIGH RISK",
+          "risk_color": "\ud83d\udd34",
+          "actual_outcome": true,
+          "description": "Acute and Chronic Kidney Failure",
+          "shap_contributions": [
+            [
+              "AGE",
+              4.650882244110107
+            ],
+            [
+              "GENDER_ENCODED",
+              2.271984577178955
+            ],
+            [
+              "ETHNICITY_ENCODED",
+              0.9428769946098328
+            ],
+            [
+              "INSURANCE_ENCODED",
+              0.11103639751672745
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED",
+              0.003487084060907364
+            ],
+            [
+              "EMERGENCY_ADMISSION",
+              0.003085416741669178
+            ],
+            [
+              "AGE_HIGH_RISK",
+              0.0
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "INSURANCE_ENCODED <= -0.31",
+              0.181751456348092
+            ],
+            [
+              "-0.50 < AGE <= -0.06",
+              0.17971159813755025
+            ],
+            [
+              "ETHNICITY_ENCODED <= -1.22",
+              0.008248939789981605
+            ],
+            [
+              "AGE_HIGH_RISK <= -0.65",
+              -0.005437688431074617
+            ],
+            [
+              "GENDER_ENCODED <= 0.47",
+              0.0
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED <= 0.10",
+              0.0
+            ],
+            [
+              "EMERGENCY_ADMISSION <= 0.10",
+              0.0
+            ]
+          ],
+          "recommendations": [
+            "\ud83d\udea8 HIGH RISK for KIDNEY_FAILURE - Immediate clinical assessment required",
+            "\ud83c\udfe5 Consider ICU monitoring or increased observation frequency",
+            "\ud83d\udcca Review all vital signs and laboratory values closely",
+            "\ud83e\uddea Monitor creatinine and urea levels closely",
+            "\ud83d\udca7 Assess fluid balance and electrolyte status",
+            "\ud83d\udc8a Review nephrotoxic medications"
+          ]
+        },
+        "cardiovascular": {
+          "risk_score": 3.054653279832564e-05,
+          "risk_category": "LOW RISK",
+          "risk_color": "\ud83d\udfe2",
+          "actual_outcome": false,
+          "description": "Cardiovascular Conditions",
+          "shap_contributions": [
+            [
+              "AGE",
+              -8.759048461914062
+            ],
+            [
+              "GENDER_ENCODED",
+              0.30003899335861206
+            ],
+            [
+              "ETHNICITY_ENCODED",
+              -0.20238827168941498
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED",
+              -0.003208537120372057
+            ],
+            [
+              "INSURANCE_ENCODED",
+              0.0
+            ],
+            [
+              "AGE_HIGH_RISK",
+              0.0
+            ],
+            [
+              "EMERGENCY_ADMISSION",
+              0.0
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "-0.50 < AGE <= -0.06",
+              -0.2154989543427971
+            ],
+            [
+              "-1.20 < ETHNICITY_ENCODED <= 0.79",
+              0.10268458997884107
+            ],
+            [
+              "AGE_HIGH_RISK <= -0.65",
+              0.018985406360213168
+            ],
+            [
+              "INSURANCE_ENCODED <= -0.31",
+              -0.0074366696920742685
+            ],
+            [
+              "EMERGENCY_ADMISSION <= 0.10",
+              0.0
+            ],
+            [
+              "GENDER_ENCODED <= 0.47",
+              0.0
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED <= 0.10",
+              0.0
+            ]
+          ],
+          "recommendations": [
+            "\u2705 LOW RISK for CARDIOVASCULAR - Standard care protocols appropriate",
+            "\ud83d\udccb Continue routine monitoring and current treatment plan"
+          ]
+        },
+        "mortality": {
+          "risk_score": 0.0022391341626644135,
+          "risk_category": "LOW RISK",
+          "risk_color": "\ud83d\udfe2",
+          "actual_outcome": false,
+          "description": "In-Hospital Mortality",
+          "shap_contributions": [
+            [
+              "GENDER_ENCODED",
+              -3.054269313812256
+            ],
+            [
+              "ETHNICITY_ENCODED",
+              -1.8121174573898315
+            ],
+            [
+              "AGE",
+              0.6854686737060547
+            ],
+            [
+              "INSURANCE_ENCODED",
+              -0.65584397315979
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED",
+              0.039636850357055664
+            ],
+            [
+              "AGE_HIGH_RISK",
+              0.0
+            ],
+            [
+              "EMERGENCY_ADMISSION",
+              0.0
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "INSURANCE_ENCODED <= -0.31",
+              0.48515733898736835
+            ],
+            [
+              "ETHNICITY_ENCODED <= -1.20",
+              -0.10718745102703546
+            ],
+            [
+              "AGE > 0.41",
+              -0.073150362127713
+            ],
+            [
+              "-0.65 < AGE_HIGH_RISK <= 1.54",
+              0.0064669219394425485
+            ],
+            [
+              "GENDER_ENCODED <= 0.47",
+              0.0
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED <= 0.10",
+              0.0
+            ],
+            [
+              "EMERGENCY_ADMISSION <= 0.10",
+              0.0
+            ]
+          ],
+          "recommendations": [
+            "\u2705 LOW RISK for MORTALITY - Standard care protocols appropriate",
+            "\ud83d\udccb Continue routine monitoring and current treatment plan"
+          ]
+        }
+      }
+    },
+    {
+      "patient_id": 8,
+      "timestamp": "2026-03-05T14:06:35.318851",
+      "diseases": {
+        "sepsis": {
+          "risk_score": 0.00038756165304221213,
+          "risk_category": "LOW RISK",
+          "risk_color": "\ud83d\udfe2",
+          "actual_outcome": false,
+          "description": "Sepsis and Septic Shock",
+          "shap_contributions": [
+            [
+              "AGE",
+              -4.288047790527344
+            ],
+            [
+              "ETHNICITY_ENCODED",
+              -3.5281858444213867
+            ],
+            [
+              "GENDER_ENCODED",
+              0.8029650449752808
+            ],
+            [
+              "INSURANCE_ENCODED",
+              0.005034321919083595
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED",
+              0.004690435249358416
+            ],
+            [
+              "AGE_HIGH_RISK",
+              0.0
+            ],
+            [
+              "EMERGENCY_ADMISSION",
+              0.0
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "-1.21 < ETHNICITY_ENCODED <= 0.78",
+              -0.37378218174731764
+            ],
+            [
+              "AGE <= -0.50",
+              -0.32723376933736936
+            ],
+            [
+              "INSURANCE_ENCODED <= -0.32",
+              0.03013417424796775
+            ],
+            [
+              "AGE_HIGH_RISK <= -0.65",
+              0.012928690272367467
+            ],
+            [
+              "GENDER_ENCODED <= 0.47",
+              0.0
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED <= 0.10",
+              0.0
+            ],
+            [
+              "EMERGENCY_ADMISSION <= 0.10",
+              0.0
+            ]
+          ],
+          "recommendations": [
+            "\u2705 LOW RISK for SEPSIS - Standard care protocols appropriate",
+            "\ud83d\udccb Continue routine monitoring and current treatment plan"
+          ]
+        },
+        "kidney_failure": {
+          "risk_score": 0.9999186992645264,
+          "risk_category": "HIGH RISK",
+          "risk_color": "\ud83d\udd34",
+          "actual_outcome": true,
+          "description": "Acute and Chronic Kidney Failure",
+          "shap_contributions": [
+            [
+              "AGE",
+              4.3561930656433105
+            ],
+            [
+              "GENDER_ENCODED",
+              2.132840156555176
+            ],
+            [
+              "ETHNICITY_ENCODED",
+              1.9403789043426514
+            ],
+            [
+              "INSURANCE_ENCODED",
+              0.02990911900997162
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED",
+              0.003487084060907364
+            ],
+            [
+              "EMERGENCY_ADMISSION",
+              0.0013008203823119402
+            ],
+            [
+              "AGE_HIGH_RISK",
+              0.0
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "AGE > 0.39",
+              -0.31889432194353007
+            ],
+            [
+              "INSURANCE_ENCODED <= -0.31",
+              0.1558775634299557
+            ],
+            [
+              "-0.65 < AGE_HIGH_RISK <= 1.53",
+              -0.0016213938383860095
+            ],
+            [
+              "-1.22 < ETHNICITY_ENCODED <= 0.78",
+              0.0010763253201768529
+            ],
+            [
+              "GENDER_ENCODED <= 0.47",
+              0.0
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED <= 0.10",
+              0.0
+            ],
+            [
+              "EMERGENCY_ADMISSION <= 0.10",
+              0.0
+            ]
+          ],
+          "recommendations": [
+            "\ud83d\udea8 HIGH RISK for KIDNEY_FAILURE - Immediate clinical assessment required",
+            "\ud83c\udfe5 Consider ICU monitoring or increased observation frequency",
+            "\ud83d\udcca Review all vital signs and laboratory values closely",
+            "\ud83e\uddea Monitor creatinine and urea levels closely",
+            "\ud83d\udca7 Assess fluid balance and electrolyte status",
+            "\ud83d\udc8a Review nephrotoxic medications"
+          ]
+        },
+        "cardiovascular": {
+          "risk_score": 0.9998605251312256,
+          "risk_category": "HIGH RISK",
+          "risk_color": "\ud83d\udd34",
+          "actual_outcome": true,
+          "description": "Cardiovascular Conditions",
+          "shap_contributions": [
+            [
+              "AGE",
+              5.168326377868652
+            ],
+            [
+              "GENDER_ENCODED",
+              2.784163475036621
+            ],
+            [
+              "ETHNICITY_ENCODED",
+              2.666614055633545
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED",
+              -0.009492520242929459
+            ],
+            [
+              "INSURANCE_ENCODED",
+              0.0
+            ],
+            [
+              "AGE_HIGH_RISK",
+              0.0
+            ],
+            [
+              "EMERGENCY_ADMISSION",
+              0.0
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "AGE > 0.40",
+              0.11969808257559879
+            ],
+            [
+              "-1.20 < ETHNICITY_ENCODED <= 0.79",
+              0.08420146905249125
+            ],
+            [
+              "-0.65 < AGE_HIGH_RISK <= 1.54",
+              0.008588341459211725
+            ],
+            [
+              "INSURANCE_ENCODED <= -0.31",
+              -0.0017035064712288995
+            ],
+            [
+              "GENDER_ENCODED <= 0.47",
+              0.0
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED <= 0.10",
+              0.0
+            ],
+            [
+              "EMERGENCY_ADMISSION <= 0.10",
+              0.0
+            ]
+          ],
+          "recommendations": [
+            "\ud83d\udea8 HIGH RISK for CARDIOVASCULAR - Immediate clinical assessment required",
+            "\ud83c\udfe5 Consider ICU monitoring or increased observation frequency",
+            "\ud83d\udcca Review all vital signs and laboratory values closely",
+            "\u2764\ufe0f Obtain ECG and cardiac enzymes",
+            "\ud83e\ude7a Monitor blood pressure and heart rhythm",
+            "\ud83d\udc8a Consider cardioprotective interventions"
+          ]
+        },
+        "mortality": {
+          "risk_score": 0.9993417859077454,
+          "risk_category": "HIGH RISK",
+          "risk_color": "\ud83d\udd34",
+          "actual_outcome": true,
+          "description": "In-Hospital Mortality",
+          "shap_contributions": [
+            [
+              "INSURANCE_ENCODED",
+              4.575160026550293
+            ],
+            [
+              "AGE",
+              3.5144119262695312
+            ],
+            [
+              "GENDER_ENCODED",
+              0.5004564523696899
+            ],
+            [
+              "ETHNICITY_ENCODED",
+              0.02337629906833172
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED",
+              0.014268549159169197
+            ],
+            [
+              "AGE_HIGH_RISK",
+              0.0
+            ],
+            [
+              "EMERGENCY_ADMISSION",
+              0.0
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "INSURANCE_ENCODED > -0.31",
+              -0.49990443710169225
+            ],
+            [
+              "-1.20 < ETHNICITY_ENCODED <= 0.79",
+              0.09240574385061161
+            ],
+            [
+              "-0.51 < AGE <= -0.06",
+              -0.0452114897535012
+            ],
+            [
+              "AGE_HIGH_RISK <= -0.65",
+              -0.004317867290724022
+            ],
+            [
+              "EMERGENCY_ADMISSION <= 0.10",
+              0.0
+            ],
+            [
+              "GENDER_ENCODED <= 0.47",
+              0.0
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED <= 0.10",
+              0.0
+            ]
+          ],
+          "recommendations": [
+            "\ud83d\udea8 HIGH RISK for MORTALITY - Immediate clinical assessment required",
+            "\ud83c\udfe5 Consider ICU monitoring or increased observation frequency",
+            "\ud83d\udcca Review all vital signs and laboratory values closely"
+          ]
+        }
+      }
+    },
+    {
+      "patient_id": 9,
+      "timestamp": "2026-03-05T14:06:35.457674",
+      "diseases": {
+        "sepsis": {
+          "risk_score": 0.9995924830436707,
+          "risk_category": "HIGH RISK",
+          "risk_color": "\ud83d\udd34",
+          "actual_outcome": true,
+          "description": "Sepsis and Septic Shock",
+          "shap_contributions": [
+            [
+              "ETHNICITY_ENCODED",
+              7.18598747253418
+            ],
+            [
+              "AGE",
+              0.7706003189086914
+            ],
+            [
+              "GENDER_ENCODED",
+              0.6706650257110596
+            ],
+            [
+              "INSURANCE_ENCODED",
+              0.02657351829111576
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED",
+              0.0028501811902970076
+            ],
+            [
+              "AGE_HIGH_RISK",
+              0.0
+            ],
+            [
+              "EMERGENCY_ADMISSION",
+              0.0
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "ETHNICITY_ENCODED <= -1.21",
+              0.369288037225744
+            ],
+            [
+              "-0.06 < AGE <= 0.40",
+              -0.2562879366455613
+            ],
+            [
+              "INSURANCE_ENCODED <= -0.32",
+              0.04714907457338159
+            ],
+            [
+              "AGE_HIGH_RISK <= -0.65",
+              -0.0046678666445713855
+            ],
+            [
+              "GENDER_ENCODED <= 0.47",
+              0.0
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED <= 0.10",
+              0.0
+            ],
+            [
+              "EMERGENCY_ADMISSION <= 0.10",
+              0.0
+            ]
+          ],
+          "recommendations": [
+            "\ud83d\udea8 HIGH RISK for SEPSIS - Immediate clinical assessment required",
+            "\ud83c\udfe5 Consider ICU monitoring or increased observation frequency",
+            "\ud83d\udcca Review all vital signs and laboratory values closely",
+            "\ud83e\uddea Consider blood cultures and lactate levels",
+            "\ud83d\udc8a Evaluate need for empirical antibiotic therapy",
+            "\ud83d\udca7 Monitor fluid balance and hemodynamic status"
+          ]
+        },
+        "kidney_failure": {
+          "risk_score": 0.9975320100784302,
+          "risk_category": "HIGH RISK",
+          "risk_color": "\ud83d\udd34",
+          "actual_outcome": true,
+          "description": "Acute and Chronic Kidney Failure",
+          "shap_contributions": [
+            [
+              "GENDER_ENCODED",
+              3.3088207244873047
+            ],
+            [
+              "AGE",
+              1.4679131507873535
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED",
+              0.11524950712919235
+            ],
+            [
+              "ETHNICITY_ENCODED",
+              0.1068192794919014
+            ],
+            [
+              "INSURANCE_ENCODED",
+              0.04679601639509201
+            ],
+            [
+              "EMERGENCY_ADMISSION",
+              0.002612004056572914
+            ],
+            [
+              "AGE_HIGH_RISK",
+              0.0
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "AGE > 0.39",
+              -0.29465095236201655
+            ],
+            [
+              "INSURANCE_ENCODED <= -0.31",
+              0.1613870907080785
+            ],
+            [
+              "-0.65 < AGE_HIGH_RISK <= 1.53",
+              -0.017261219403550698
+            ],
+            [
+              "-1.22 < ETHNICITY_ENCODED <= 0.78",
+              -0.01571603165798751
+            ],
+            [
+              "GENDER_ENCODED <= 0.47",
+              0.0
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED <= 0.10",
+              0.0
+            ],
+            [
+              "EMERGENCY_ADMISSION <= 0.10",
+              0.0
+            ]
+          ],
+          "recommendations": [
+            "\ud83d\udea8 HIGH RISK for KIDNEY_FAILURE - Immediate clinical assessment required",
+            "\ud83c\udfe5 Consider ICU monitoring or increased observation frequency",
+            "\ud83d\udcca Review all vital signs and laboratory values closely",
+            "\ud83e\uddea Monitor creatinine and urea levels closely",
+            "\ud83d\udca7 Assess fluid balance and electrolyte status",
+            "\ud83d\udc8a Review nephrotoxic medications"
+          ]
+        },
+        "cardiovascular": {
+          "risk_score": 2.7997351935482584e-05,
+          "risk_category": "LOW RISK",
+          "risk_color": "\ud83d\udfe2",
+          "actual_outcome": false,
+          "description": "Cardiovascular Conditions",
+          "shap_contributions": [
+            [
+              "AGE",
+              -8.967498779296875
+            ],
+            [
+              "GENDER_ENCODED",
+              0.36576592922210693
+            ],
+            [
+              "ETHNICITY_ENCODED",
+              -0.14688847959041595
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED",
+              -0.0031294873915612698
+            ],
+            [
+              "INSURANCE_ENCODED",
+              0.0
+            ],
+            [
+              "AGE_HIGH_RISK",
+              0.0
+            ],
+            [
+              "EMERGENCY_ADMISSION",
+              0.0
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "-0.06 < AGE <= 0.40",
+              0.3553265686025243
+            ],
+            [
+              "ETHNICITY_ENCODED <= -1.20",
+              -0.09251375920172158
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED <= 0.10",
+              0.04175427971358234
+            ],
+            [
+              "AGE_HIGH_RISK <= -0.65",
+              0.015156349807527001
+            ],
+            [
+              "INSURANCE_ENCODED <= -0.31",
+              0.007378652929805615
+            ],
+            [
+              "EMERGENCY_ADMISSION <= 0.10",
+              0.0
+            ],
+            [
+              "GENDER_ENCODED <= 0.47",
+              0.0
+            ]
+          ],
+          "recommendations": [
+            "\u2705 LOW RISK for CARDIOVASCULAR - Standard care protocols appropriate",
+            "\ud83d\udccb Continue routine monitoring and current treatment plan"
+          ]
+        },
+        "mortality": {
+          "risk_score": 4.054157398059033e-05,
+          "risk_category": "LOW RISK",
+          "risk_color": "\ud83d\udfe2",
+          "actual_outcome": false,
+          "description": "In-Hospital Mortality",
+          "shap_contributions": [
+            [
+              "AGE",
+              -6.710445880889893
+            ],
+            [
+              "INSURANCE_ENCODED",
+              -2.462092876434326
+            ],
+            [
+              "GENDER_ENCODED",
+              0.5048527717590332
+            ],
+            [
+              "ETHNICITY_ENCODED",
+              -0.15742702782154083
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED",
+              0.014268549159169197
+            ],
+            [
+              "AGE_HIGH_RISK",
+              0.0
+            ],
+            [
+              "EMERGENCY_ADMISSION",
+              0.0
+            ]
+          ],
+          "lime_explanation": [
+            [
+              "INSURANCE_ENCODED <= -0.31",
+              0.4941342934424496
+            ],
+            [
+              "-1.20 < ETHNICITY_ENCODED <= 0.79",
+              0.08615212743963707
+            ],
+            [
+              "-0.51 < AGE <= -0.06",
+              -0.031533164150624245
+            ],
+            [
+              "AGE_HIGH_RISK <= -0.65",
+              0.006326092738578002
+            ],
+            [
+              "EMERGENCY_ADMISSION <= 0.10",
+              0.0
+            ],
+            [
+              "GENDER_ENCODED <= 0.47",
+              0.0
+            ],
+            [
+              "ADMISSION_TYPE_ENCODED <= 0.10",
+              0.0
+            ]
+          ],
+          "recommendations": [
+            "\u2705 LOW RISK for MORTALITY - Standard care protocols appropriate",
+            "\ud83d\udccb Continue routine monitoring and current treatment plan"
+          ]
+        }
+      }
+    }
+  ],
+  "dashboard_figure": "Figure({\n    'data': [{'colorscale': [[0.0, 'rgb(255,245,240)'], [0.125,\n                             'rgb(254,224,210)'], [0.25, 'rgb(252,187,161)'],\n                             [0.375, 'rgb(252,146,114)'], [0.5, 'rgb(251,106,74)'],\n                             [0.625, 'rgb(239,59,44)'], [0.75, 'rgb(203,24,29)'],\n                             [0.875, 'rgb(165,15,21)'], [1.0, 'rgb(103,0,13)']],\n              'name': 'Risk Heatmap',\n              'type': 'heatmap',\n              'x': [Patient 0, Patient 1, Patient 2, Patient 3, Patient 4, Patient\n                    5, Patient 6, Patient 7, Patient 8, Patient 9],\n              'xaxis': 'x',\n              'y': [sepsis, kidney_failure, liver_cirrhosis, cardiovascular,\n                    mortality],\n              'yaxis': 'y',\n              'z': {'bdata': ('AAAA4JOiIz8AAAAgdK0cPwAAAKA0Zj' ... 'DOV2I/AAAAoJv67z8AAADgZUEFPw=='),\n                    'dtype': 'f8',\n                    'shape': '5, 10'}},\n             {'name': 'sepsis',\n              'showlegend': False,\n              'type': 'box',\n              'xaxis': 'x2',\n              'y': [0.0001498036872362718, 0.00010939618368865922,\n                    0.00038756165304221213, 0.9997878670692444, 0.9998781681060791,\n                    0.9996659755706787, 0.00038756165304221213,\n                    0.0003069407830480486, 0.00038756165304221213,\n                    0.9995924830436707],\n              'yaxis': 'y2'},\n             {'name': 'kidney_failure',\n              'showlegend': False,\n              'type': 'box',\n              'xaxis': 'x2',\n              'y': [0.000722790602594614, 0.9998685121536255,\n                    0.002108238637447357, 0.00039741236832924187,\n                    0.9998685121536255, 0.005525005981326103, 0.9996204376220703,\n                    0.9998685121536255, 0.9999186992645264, 0.9975320100784302],\n              'yaxis': 'y2'},\n             {'name': 'liver_cirrhosis',\n              'showlegend': False,\n              'type': 'box',\n              'xaxis': 'x2',\n              'y': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],\n              'yaxis': 'y2'},\n             {'name': 'cardiovascular',\n              'showlegend': False,\n              'type': 'box',\n              'xaxis': 'x2',\n              'y': [3.054653279832564e-05, 0.999230146408081, 0.9998605251312256,\n                    3.054653279832564e-05, 3.054653279832564e-05,\n                    2.7997351935482584e-05, 0.0002569157804828137,\n                    3.054653279832564e-05, 0.9998605251312256,\n                    2.7997351935482584e-05],\n              'yaxis': 'y2'},\n             {'name': 'mortality',\n              'showlegend': False,\n              'type': 'box',\n              'xaxis': 'x2',\n              'y': [0.9996917247772217, 0.9999443292617798, 0.9996917247772217,\n                    0.0015184900257736444, 0.9993417859077454, 0.7656797170639038,\n                    0.9996917247772217, 0.0022391341626644135, 0.9993417859077454,\n                    4.054157398059033e-05],\n              'yaxis': 'y2'},\n             {'name': 'AUC Scores',\n              'showlegend': False,\n              'type': 'bar',\n              'x': [sepsis, kidney_failure, cardiovascular, mortality],\n              'xaxis': 'x3',\n              'y': [0.999669565879842, 0.9998585503853283, 0.9995602822858165,\n                    0.9998523714771457],\n              'yaxis': 'y3'},\n             {'name': 'Feature Importance',\n              'showlegend': False,\n              'type': 'bar',\n              'x': [Age, BP, Heart Rate, Glucose, Creatinine],\n              'xaxis': 'x4',\n              'y': [0.3, 0.25, 0.2, 0.15, 0.1],\n              'yaxis': 'y4'},\n             {'domain': {'x': [0.0, 0.45], 'y': [0.0, 0.22222222222222224]},\n              'labels': [Low Risk, Moderate Risk, High Risk],\n              'name': 'Risk Categories',\n              'type': 'pie',\n              'values': [15, 8, 2]},\n             {'colorscale': [[0.0, 'rgb(103,0,31)'], [0.1, 'rgb(178,24,43)'],\n                             [0.2, 'rgb(214,96,77)'], [0.3, 'rgb(244,165,130)'],\n                             [0.4, 'rgb(253,219,199)'], [0.5, 'rgb(247,247,247)'],\n                             [0.6, 'rgb(209,229,240)'], [0.7, 'rgb(146,197,222)'],\n                             [0.8, 'rgb(67,147,195)'], [0.9, 'rgb(33,102,172)'],\n                             [1.0, 'rgb(5,48,97)']],\n              'name': 'Disease Correlations',\n              'type': 'heatmap',\n              'x': [sepsis, kidney_failure, liver_cirrhosis, cardiovascular,\n                    mortality],\n              'xaxis': 'x5',\n              'y': [sepsis, kidney_failure, liver_cirrhosis, cardiovascular,\n                    mortality],\n              'yaxis': 'y5',\n              'z': {'bdata': ('/v//////7z+FkQfF61PFvwAAAAAAAP' ... 'AAAAD4/9sx89TmPd4/////////7z8='),\n                    'dtype': 'f8',\n                    'shape': '5, 5'}}],\n    'layout': {'annotations': [{'font': {'size': 16},\n                                'showarrow': False,\n                                'text': 'Multi-Disease Risk Heatmap',\n                                'x': 0.225,\n                                'xanchor': 'center',\n                                'xref': 'paper',\n                                'y': 1.0,\n                                'yanchor': 'bottom',\n                                'yref': 'paper'},\n                               {'font': {'size': 16},\n                                'showarrow': False,\n                                'text': 'Risk Distribution by Disease',\n                                'x': 0.775,\n                                'xanchor': 'center',\n                                'xref': 'paper',\n                                'y': 1.0,\n                                'yanchor': 'bottom',\n                                'yref': 'paper'},\n                               {'font': {'size': 16},\n                                'showarrow': False,\n                                'text': 'Model Performance Summary',\n                                'x': 0.225,\n                                'xanchor': 'center',\n                                'xref': 'paper',\n                                'y': 0.6111111111111112,\n                                'yanchor': 'bottom',\n                                'yref': 'paper'},\n                               {'font': {'size': 16},\n                                'showarrow': False,\n                                'text': 'Feature Importance Comparison',\n                                'x': 0.775,\n                                'xanchor': 'center',\n                                'xref': 'paper',\n                                'y': 0.6111111111111112,\n                                'yanchor': 'bottom',\n                                'yref': 'paper'},\n                               {'font': {'size': 16},\n                                'showarrow': False,\n                                'text': 'Patient Risk Categories',\n                                'x': 0.225,\n                                'xanchor': 'center',\n                                'xref': 'paper',\n                                'y': 0.22222222222222224,\n                                'yanchor': 'bottom',\n                                'yref': 'paper'},\n                               {'font': {'size': 16},\n                                'showarrow': False,\n                                'text': 'Disease Correlations',\n                                'x': 0.775,\n                                'xanchor': 'center',\n                                'xref': 'paper',\n                                'y': 0.22222222222222224,\n                                'yanchor': 'bottom',\n                                'yref': 'paper'}],\n               'height': 1200,\n               'showlegend': False,\n               'template': '...',\n               'title': {'text': 'Multi-Disease Explainable AI Dashboard'},\n               'xaxis': {'anchor': 'y', 'domain': [0.0, 0.45]},\n               'xaxis2': {'anchor': 'y2', 'domain': [0.55, 1.0]},\n               'xaxis3': {'anchor': 'y3', 'domain': [0.0, 0.45]},\n               'xaxis4': {'anchor': 'y4', 'domain': [0.55, 1.0]},\n               'xaxis5': {'anchor': 'y5', 'domain': [0.55, 1.0]},\n               'yaxis': {'anchor': 'x', 'domain': [0.7777777777777778, 1.0]},\n               'yaxis2': {'anchor': 'x2', 'domain': [0.7777777777777778, 1.0]},\n               'yaxis3': {'anchor': 'x3', 'domain': [0.3888888888888889, 0.6111111111111112]},\n               'yaxis4': {'anchor': 'x4', 'domain': [0.3888888888888889, 0.6111111111111112]},\n               'yaxis5': {'anchor': 'x5', 'domain': [0.0, 0.22222222222222224]}}\n})",
+  "health_assistant_insights": {
+    "population_insights": {
+      "highest_risk_disease": [
+        "kidney_failure",
+        0.6990277694595836
+      ],
+      "disease_correlations": {
+        "sepsis_vs_kidney_failure": -0.16662356491645994,
+        "sepsis_vs_cardiovascular": -0.5345720223255388,
+        "sepsis_vs_mortality": -0.42891026656441855,
+        "kidney_failure_vs_cardiovascular": 0.08940039048191398,
+        "kidney_failure_vs_mortality": -0.026095262487161354,
+        "cardiovascular_vs_mortality": 0.47252817912956646
+      },
+      "common_risk_factors": [
+        "Advanced age (>70 years)",
+        "Emergency admission",
+        "Abnormal vital signs",
+        "Laboratory abnormalities",
+        "Comorbidity burden"
+      ]
+    },
+    "personalized_recommendations": {},
+    "risk_alerts": [
+      {
+        "patient_id": 0,
+        "disease": "mortality",
+        "risk_score": 0.9996917247772217,
+        "urgency": "HIGH",
+        "action_required": "Immediate clinical assessment"
+      },
+      {
+        "patient_id": 1,
+        "disease": "kidney_failure",
+        "risk_score": 0.9998685121536255,
+        "urgency": "HIGH",
+        "action_required": "Immediate clinical assessment"
+      },
+      {
+        "patient_id": 1,
+        "disease": "cardiovascular",
+        "risk_score": 0.999230146408081,
+        "urgency": "HIGH",
+        "action_required": "Immediate clinical assessment"
+      },
+      {
+        "patient_id": 1,
+        "disease": "mortality",
+        "risk_score": 0.9999443292617798,
+        "urgency": "HIGH",
+        "action_required": "Immediate clinical assessment"
+      },
+      {
+        "patient_id": 2,
+        "disease": "cardiovascular",
+        "risk_score": 0.9998605251312256,
+        "urgency": "HIGH",
+        "action_required": "Immediate clinical assessment"
+      },
+      {
+        "patient_id": 2,
+        "disease": "mortality",
+        "risk_score": 0.9996917247772217,
+        "urgency": "HIGH",
+        "action_required": "Immediate clinical assessment"
+      },
+      {
+        "patient_id": 3,
+        "disease": "sepsis",
+        "risk_score": 0.9997878670692444,
+        "urgency": "HIGH",
+        "action_required": "Immediate clinical assessment"
+      },
+      {
+        "patient_id": 4,
+        "disease": "sepsis",
+        "risk_score": 0.9998781681060791,
+        "urgency": "HIGH",
+        "action_required": "Immediate clinical assessment"
+      },
+      {
+        "patient_id": 4,
+        "disease": "kidney_failure",
+        "risk_score": 0.9998685121536255,
+        "urgency": "HIGH",
+        "action_required": "Immediate clinical assessment"
+      },
+      {
+        "patient_id": 4,
+        "disease": "mortality",
+        "risk_score": 0.9993417859077454,
+        "urgency": "HIGH",
+        "action_required": "Immediate clinical assessment"
+      },
+      {
+        "patient_id": 5,
+        "disease": "sepsis",
+        "risk_score": 0.9996659755706787,
+        "urgency": "HIGH",
+        "action_required": "Immediate clinical assessment"
+      },
+      {
+        "patient_id": 5,
+        "disease": "mortality",
+        "risk_score": 0.7656797170639038,
+        "urgency": "HIGH",
+        "action_required": "Immediate clinical assessment"
+      },
+      {
+        "patient_id": 6,
+        "disease": "kidney_failure",
+        "risk_score": 0.9996204376220703,
+        "urgency": "HIGH",
+        "action_required": "Immediate clinical assessment"
+      },
+      {
+        "patient_id": 6,
+        "disease": "mortality",
+        "risk_score": 0.9996917247772217,
+        "urgency": "HIGH",
+        "action_required": "Immediate clinical assessment"
+      },
+      {
+        "patient_id": 7,
+        "disease": "kidney_failure",
+        "risk_score": 0.9998685121536255,
+        "urgency": "HIGH",
+        "action_required": "Immediate clinical assessment"
+      },
+      {
+        "patient_id": 8,
+        "disease": "kidney_failure",
+        "risk_score": 0.9999186992645264,
+        "urgency": "HIGH",
+        "action_required": "Immediate clinical assessment"
+      },
+      {
+        "patient_id": 8,
+        "disease": "cardiovascular",
+        "risk_score": 0.9998605251312256,
+        "urgency": "HIGH",
+        "action_required": "Immediate clinical assessment"
+      },
+      {
+        "patient_id": 8,
+        "disease": "mortality",
+        "risk_score": 0.9993417859077454,
+        "urgency": "HIGH",
+        "action_required": "Immediate clinical assessment"
+      },
+      {
+        "patient_id": 9,
+        "disease": "sepsis",
+        "risk_score": 0.9995924830436707,
+        "urgency": "HIGH",
+        "action_required": "Immediate clinical assessment"
+      },
+      {
+        "patient_id": 9,
+        "disease": "kidney_failure",
+        "risk_score": 0.9975320100784302,
+        "urgency": "HIGH",
+        "action_required": "Immediate clinical assessment"
+      }
+    ],
+    "preventive_measures": {}
+  }
+}
