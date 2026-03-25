@@ -34,7 +34,7 @@ from dataclasses import dataclass
 from enum import Enum
 import numpy as np
 import pandas as pd
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict, ValidationInfo
 import joblib
 from pathlib import Path
 
@@ -87,17 +87,18 @@ class ModelInput(BaseModel):
     features: Dict[str, float] = Field(..., description="Feature values")
     feature_names: List[str] = Field(..., description="Ordered feature names")
     
-    @validator('features')
-    def validate_features(cls, v, values):
+    @field_validator('features')
+    @classmethod
+    def validate_features(cls, v, info: ValidationInfo):
         """Ensure all feature names have corresponding values."""
+        values = info.data or {}
         if 'feature_names' in values:
             missing = set(values['feature_names']) - set(v.keys())
             if missing:
                 raise ValueError(f"Missing features: {missing}")
         return v
-    
-    class Config:
-        schema_extra = {
+
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "patient_id": "P12345",
                 "features": {
@@ -109,6 +110,7 @@ class ModelInput(BaseModel):
                 "feature_names": ["age", "heart_rate", "temperature", "wbc_count"]
             }
         }
+    )
 
 
 class ModelPrediction(BaseModel):
@@ -120,8 +122,7 @@ class ModelPrediction(BaseModel):
     confidence: float = Field(..., ge=0.0, le=1.0, description="Model confidence score")
     timestamp: str = Field(..., description="Prediction timestamp (ISO format)")
     
-    class Config:
-        schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "patient_id": "P12345",
                 "disease": "Sepsis",
@@ -131,6 +132,7 @@ class ModelPrediction(BaseModel):
                 "timestamp": "2026-01-13T10:30:00Z"
             }
         }
+    )
 
 
 class ExplanationOutput(BaseModel):
@@ -143,8 +145,7 @@ class ExplanationOutput(BaseModel):
     clinical_translation: Dict[str, str] = Field(..., description="Feature → clinical meaning")
     base_value: Optional[float] = Field(None, description="SHAP base value (expected output)")
     
-    class Config:
-        schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "patient_id": "P12345",
                 "disease": "Sepsis",
@@ -162,6 +163,7 @@ class ExplanationOutput(BaseModel):
                 "base_value": 0.098
             }
         }
+    )
 
 
 class TrainingMetrics(BaseModel):
@@ -177,8 +179,7 @@ class TrainingMetrics(BaseModel):
     samples_val: int = Field(..., gt=0)
     class_balance: Dict[str, float] = Field(..., description="Class distribution")
     
-    class Config:
-        schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "disease": "Sepsis",
                 "model_type": "XGBoost",
@@ -192,6 +193,7 @@ class TrainingMetrics(BaseModel):
                 "class_balance": {"negative": 0.902, "positive": 0.098}
             }
         }
+    )
 
 
 # ============================================================================
@@ -359,7 +361,7 @@ class BaseModelService(ABC):
         X_eval = X_val if X_val is not None else X_train
         y_eval = y_val if y_val is not None else y_train
         
-        metrics = self.evaluate(X_eval, y_eval)
+        metrics = self.evaluate(X_eval, y_eval, samples_train=len(y_train))
         
         print(f"[{self.disease_name}] Training complete. ROC-AUC: {metrics.roc_auc:.3f}")
         return metrics
@@ -421,7 +423,8 @@ class BaseModelService(ABC):
     def evaluate(
         self,
         X_test: Union[np.ndarray, pd.DataFrame],
-        y_test: np.ndarray
+        y_test: np.ndarray,
+        samples_train: Optional[int] = None
     ) -> TrainingMetrics:
         """
         Evaluate model performance on test data.
@@ -457,7 +460,7 @@ class BaseModelService(ABC):
             recall=float(recall),
             f1_score=float(f1),
             roc_auc=float(roc_auc),
-            samples_train=0,  # Not available in evaluation
+            samples_train=samples_train if samples_train is not None else len(y_test),
             samples_val=len(y_test),
             class_balance=self.class_prevalence or {"negative": 0.5, "positive": 0.5}
         )

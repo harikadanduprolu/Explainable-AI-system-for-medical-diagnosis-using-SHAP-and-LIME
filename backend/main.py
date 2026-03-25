@@ -13,8 +13,9 @@ Access:
     Frontend: http://localhost:8000/app
 """
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
@@ -26,31 +27,109 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 import joblib
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+# Configuration from environment
+APP_ENV = os.getenv("APP_ENV", "development")
+DEBUG = os.getenv("DEBUG", "false").lower() == "true"
+SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
+CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*").split(",")
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+ENABLE_API_DOCS = os.getenv("ENABLE_API_DOCS", "true").lower() == "true"
+
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=getattr(logging, LOG_LEVEL),
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
+
+logger.info(f"Starting application in {APP_ENV} mode")
+logger.info(f"CORS origins: {CORS_ORIGINS}")
+
+# Import authentication router (after logger is initialized)
+AUTH_ENABLED = False
+try:
+    from backend.auth import router as auth_router
+    from backend.database import connect_to_mongodb, close_mongodb_connection
+    AUTH_ENABLED = True
+    logger.info("✅ Authentication module loaded")
+except ImportError as e:
+    logger.warning(f"⚠️ Authentication disabled: {e}")
 
 # Initialize FastAPI app
 app = FastAPI(
     title="Explainable Medical AI API",
     description="Multi-disease prediction with SHAP & LIME explanations",
     version="2.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc"
+    docs_url="/docs" if ENABLE_API_DOCS else None,
+    redoc_url="/redoc" if ENABLE_API_DOCS else None,
+    debug=DEBUG
 )
 
-# CORS middleware
+# Security: Trusted Host Middleware (prevent host header attacks)
+if APP_ENV == "production":
+    app.add_middleware(
+        TrustedHostMiddleware,
+        allowed_hosts=["*"]  # Configure with your domain
+    )
+
+# CORS middleware with environment-based configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify exact origins
+    allow_origins=CORS_ORIGINS if CORS_ORIGINS != ["*"] else ["*"],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
+    max_age=3600,
 )
+
+# ============================================================================
+# APPLICATION LIFECYCLE EVENTS
+# ============================================================================
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize services on startup."""
+    logger.info("🚀 Application startup...")
+    
+    # Connect to MongoDB
+    if AUTH_ENABLED:
+        try:
+            await connect_to_mongodb()
+            logger.info("✅ MongoDB connected")
+        except Exception as e:
+            logger.error(f"❌ MongoDB connection failed: {e}")
+            logger.warning("⚠️ Running without authentication")
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Cleanup on shutdown."""
+    logger.info("🛑 Application shutdown...")
+    
+    # Close MongoDB connection
+    if AUTH_ENABLED:
+        try:
+            await close_mongodb_connection()
+        except Exception as e:
+            logger.error(f"Error closing MongoDB: {e}")
+
+# ============================================================================
+# INCLUDE ROUTERS
+# ============================================================================
+
+# Authentication routes
+if AUTH_ENABLED:
+    app.include_router(auth_router)
+    logger.info("✅ Authentication routes enabled")
 
 # Static files
 STATIC_DIR = Path(__file__).parent / "static"
@@ -306,9 +385,9 @@ model_manager = ModelManager()
 # API ENDPOINTS
 # ============================================================================
 
-@app.get("/")
-async def root():
-    """Root endpoint."""
+@app.get("/api")
+async def api_info():
+    """General API metadata endpoint."""
     return {
         "name": "Explainable Medical AI API",
         "version": "2.0.0",
@@ -329,12 +408,28 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint."""
-    return {
+    """
+    Health check endpoint for load balancers and monitoring.
+    Returns detailed system status in production.
+    """
+    health_status = {
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
-        "models_loaded": len(model_manager.models)
+        "environment": APP_ENV,
+        "version": "2.0.0",
+        "models_loaded": len(model_manager.models),
+        "diseases_available": list(model_manager.models.keys()) if DEBUG else len(model_manager.models)
     }
+    
+    # Add detailed checks in development/debug mode
+    if DEBUG:
+        health_status.update({
+            "debug_mode": True,
+            "api_docs_enabled": ENABLE_API_DOCS,
+            "cors_origins": CORS_ORIGINS
+        })
+    
+    return health_status
 
 
 @app.get("/api/models")
@@ -500,17 +595,81 @@ async def get_sample_patients():
     }
 
 
-# Serve frontend
-@app.get("/app")
-async def serve_app():
-    """Serve the React frontend."""
-    index_file = STATIC_DIR / "index.html"
-    if index_file.exists():
-        return FileResponse(index_file)
+# ============================================================================
+# FRONTEND ROUTES
+# ============================================================================
+
+FRONTEND_ENTRY = STATIC_DIR / "index.html"
+SPA_RESERVED_PATHS = ("api", "docs", "redoc", "openapi.json", "health")
+
+
+def serve_frontend_entry():
+    """Return the built React application entry file."""
+    if FRONTEND_ENTRY.exists():
+        return FileResponse(FRONTEND_ENTRY)
     return JSONResponse(
-        content={"error": "Frontend not built yet. Run 'npm run build' in frontend directory."},
-        status_code=404
+        content={
+            "error": "Frontend build not found",
+            "detail": "Run `npm install` and `npm run build` inside the frontend folder."
+        },
+        status_code=503
     )
+
+
+@app.get("/", include_in_schema=False)
+async def serve_frontend_root():
+    """Serve the React SPA root."""
+    return serve_frontend_entry()
+
+
+@app.get("/app", include_in_schema=False)
+async def serve_frontend_app():
+    """Support legacy /app route for the SPA."""
+    return serve_frontend_entry()
+
+
+@app.get("/login", include_in_schema=False)
+async def serve_frontend_login():
+    """Serve the SPA for the login route."""
+    return serve_frontend_entry()
+
+
+@app.get("/signup", include_in_schema=False)
+async def serve_frontend_signup():
+    """Serve the SPA for the signup route."""
+    return serve_frontend_entry()
+
+
+@app.get("/clinical", include_in_schema=False)
+async def serve_frontend_clinical():
+    """Serve the SPA for the protected clinical dashboard route."""
+    return serve_frontend_entry()
+
+
+@app.get("/predict", include_in_schema=False)
+async def serve_frontend_predict():
+    """Serve the SPA for the prediction workspace."""
+    return serve_frontend_entry()
+
+
+@app.get("/{full_path:path}", include_in_schema=False)
+async def serve_frontend_catchall(full_path: str):
+    """
+    Return the SPA for any non-API route so BrowserRouter works on refresh/deep links.
+    """
+    normalized = full_path.strip("/")
+    if not normalized:
+        return serve_frontend_entry()
+
+    # Skip API/docs/openapi paths so FastAPI can continue handling them.
+    if any(normalized.startswith(prefix) for prefix in SPA_RESERVED_PATHS):
+        raise HTTPException(status_code=404, detail="Not Found")
+
+    candidate_file = STATIC_DIR / normalized
+    if candidate_file.exists() and candidate_file.is_file():
+        return FileResponse(candidate_file)
+
+    return serve_frontend_entry()
 
 
 # Serve medical icon

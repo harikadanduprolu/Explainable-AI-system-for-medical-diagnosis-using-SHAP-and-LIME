@@ -103,10 +103,32 @@ celerybeat-schedule
 
 # Environments
 .env
+.env.local
+.env.production
+.env.*.local
 .venv
 env/
 venv/
 ENV/
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# SSL certificates
+*.pem
+*.key
+*.crt
+ssl/
+
+# Logs
+logs/
+*.log
+audit_logs/*.jsonl
+
+# Secrets
+secrets/
+*.secret
 
 # Spyder project settings
 .spyderproject
@@ -130,6 +152,7 @@ mimic_cxr_aug_train.csv
 *.hdf5
 mimic_large.csv
 mimic_training_data.csv
+dataset/
 
 # Medical images (large files)
 *.dcm

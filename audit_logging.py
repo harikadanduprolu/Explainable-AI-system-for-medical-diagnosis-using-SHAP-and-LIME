@@ -231,7 +231,6 @@ class AuditLogger:
         event = AuditEvent(
             record_hash=record_hash,
             **record_base,
-            event_type=event_type,
         )
 
         self._atomic_append(event.to_json())
@@ -335,11 +334,10 @@ class AuditLogger:
     def _atomic_append(self, line: str) -> None:
         # Ensure line ends with newline
         line = line.rstrip("\n") + "\n"
-        with self._file_lock(self.log_path):
-            with open(self.log_path, "a", encoding="utf-8") as f:
-                f.write(line)
-                f.flush()
-                os.fsync(f.fileno())
+        with self._file_lock(self.log_path) as f:
+            f.write(line)
+            f.flush()
+            os.fsync(f.fileno())
 
     # ------------------------------------------------------------------
     # File locking (Windows/POSIX)

@@ -3,11 +3,12 @@
 Multi-Disease Prediction System with Explainable AI
 
 This comprehensive system implements all four main modules:
-1. Disease Prediction Module - Multiple disease predictions (sepsis, kidney failure, liver cirrhosis, cardiovascular)
+1. Disease Prediction Module - Multiple disease predictions (sepsis, kidney failure, cardiovascular, diabetes)
 2. Explainability Module - SHAP & LIME for model interpretability
 3. Visualization & Interaction Module - Interactive dashboard with what-if analysis
 4. Personalized Health Assistant - Autonomous agent with recommendations
 
+Compatible with MIMIC-IV v3.1 (uses ICD-10 codes)
 Author: GitHub Copilot
 License: Academic/Research Use Only
 """
@@ -51,6 +52,7 @@ class MultiDiseaseExplainableSystem:
     """
     Comprehensive multi-disease prediction system with explainable AI capabilities.
     
+    Compatible with MIMIC-IV v3.1 (uses ICD-10 codes instead of ICD-9)
     Implements all four main modules:
     1. Disease Prediction Module
     2. Explainability Module (SHAP & LIME)
@@ -58,105 +60,147 @@ class MultiDiseaseExplainableSystem:
     4. Personalized Health Assistant
     """
     
-    def __init__(self, mimic_data_path: str):
+    def __init__(self, mimic_data_path: str = None, use_bigquery: bool = False):
         """Initialize the multi-disease prediction system."""
-        self.mimic_path = Path(mimic_data_path)
+        self.mimic_path = Path(mimic_data_path) if mimic_data_path else None
+        self.use_bigquery = use_bigquery
         self.models = {}
         self.scalers = {}
         self.explainers = {}
         self.feature_names = {}
         self.results = {}
         
-        # Disease configurations
+        # Disease configurations with ICD-10 codes (MIMIC-IV v3.1)
         self.diseases = {
             'sepsis': {
-                'icd9_codes': ['038', '995.91', '995.92', '785.52'],
+                'icd10_codes': ['A40', 'A41', 'R65.2'],
                 'description': 'Sepsis and Septic Shock'
             },
             'kidney_failure': {
-                'icd9_codes': ['584', '585', '586'],
+                'icd10_codes': ['N17', 'N18', 'N19'],
                 'description': 'Acute and Chronic Kidney Failure'
             },
-            'liver_cirrhosis': {
-                'icd9_codes': ['571.2', '571.5', '571.6'],
-                'description': 'Liver Cirrhosis'
-            },
             'cardiovascular': {
-                'icd9_codes': ['410', '411', '413', '414', '427.5'],
+                'icd10_codes': ['I21', 'I22', 'I23', 'I24', 'I25'],
                 'description': 'Cardiovascular Conditions'
             },
+            'diabetes': {
+                'icd10_codes': ['E10', 'E11', 'E13', 'E14'],
+                'description': 'Diabetes Mellitus'
+            },
+            'anemia': {
+                'icd10_codes': ['D50', 'D51', 'D52', 'D53', 'D55', 'D56', 'D57', 'D58', 'D59'],
+                'description': 'Anemia'
+            },
             'mortality': {
-                'target_column': 'HOSPITAL_EXPIRE_FLAG',
+                'target_column': 'hospital_expire_flag',
                 'description': 'In-Hospital Mortality'
             }
         }
         
-        logger.info("Multi-Disease Explainable System initialized")
+        logger.info("Multi-Disease Explainable System initialized (MIMIC-IV v3.1)")
     
     def load_mimic_data(self) -> Dict[str, pd.DataFrame]:
-        """Load MIMIC-III datasets for multi-disease prediction."""
-        logger.info("Loading MIMIC-III data for multi-disease prediction...")
+        """Load MIMIC-IV v3.1 datasets for multi-disease prediction."""
+        logger.info("Loading MIMIC-IV v3.1 data for multi-disease prediction...")
         
         data = {}
         
         try:
-            # Core tables
-            data['admissions'] = pd.read_csv(self.mimic_path / "ADMISSIONS.csv")
-            data['patients'] = pd.read_csv(self.mimic_path / "PATIENTS.csv")
-            data['icustays'] = pd.read_csv(self.mimic_path / "ICUSTAYS.csv")
+            # Load from hosp and icu modules
+            hosp_path = self.mimic_path / "hosp"
+            icu_path = self.mimic_path / "icu"
             
-            # Clinical data (sample for memory efficiency)
-            data['diagnoses'] = pd.read_csv(self.mimic_path / "DIAGNOSES_ICD.csv")
-            data['chartevents'] = pd.read_csv(self.mimic_path / "CHARTEVENTS.csv", nrows=50000)
-            data['labevents'] = pd.read_csv(self.mimic_path / "LABEVENTS.csv", nrows=50000)
+            # Core tables from hosp module (handle both lowercase and uppercase filenames)
+            tables_to_load = {
+                'admissions': 'admissions.csv',
+                'patients': 'patients.csv',
+                'diagnoses': 'diagnoses_icd.csv',
+                'labevents': 'labevents.csv',
+            }
+            
+            for table_name, filename in tables_to_load.items():
+                file_path = hosp_path / filename
+                if not file_path.exists():
+                    file_path = hosp_path / filename.upper()
+                
+                if file_path.exists():
+                    data[table_name] = pd.read_csv(file_path, nrows=50000 if table_name in ['labevents', 'diagnoses'] else None)
+                    logger.info(f"✅ Loaded {table_name}: {data[table_name].shape}")
+                else:
+                    logger.warning(f"⚠️  {filename} not found")
+            
+            # Load ICU stays from icu module
+            icustays_file = icu_path / "icustays.csv"
+            if not icustays_file.exists():
+                icustays_file = icu_path / "ICUSTAYS.csv"
+            
+            if icustays_file.exists():
+                data['icustays'] = pd.read_csv(icustays_file)
+                logger.info(f"✅ Loaded icustays: {data['icustays'].shape}")
+            
+            # Load chart events for vitals
+            chartevents_file = icu_path / "chartevents.csv"
+            if not chartevents_file.exists():
+                chartevents_file = icu_path / "CHARTEVENTS.csv"
+            
+            if chartevents_file.exists():
+                data['chartevents'] = pd.read_csv(chartevents_file, nrows=50000)
+                logger.info(f"✅ Loaded chartevents: {data['chartevents'].shape}")
             
             # Standardize column names to uppercase
             for table_name, df in data.items():
                 data[table_name].columns = [col.upper() for col in df.columns]
             
-            logger.info(f"✅ Loaded {len(data)} tables successfully")
+            logger.info(f"✅ Loaded {len(data)} tables successfully from MIMIC-IV v3.1")
             for table, df in data.items():
                 logger.info(f"  📊 {table}: {df.shape}")
                 
         except Exception as e:
-            logger.error(f"Error loading MIMIC data: {e}")
+            logger.error(f"Error loading MIMIC-IV data: {e}")
             logger.info("Creating synthetic data for demonstration...")
             data = self._create_synthetic_data()
         
         return data
     
     def _create_synthetic_data(self) -> Dict[str, pd.DataFrame]:
-        """Create synthetic MIMIC-like data for demonstration."""
+        """Create synthetic MIMIC-IV-like data for demonstration (ICD-10 codes)."""
         np.random.seed(42)
         n_patients = 5000
         
-        # Patients
+        # Patients (MIMIC-IV schema)
         patients = pd.DataFrame({
             'SUBJECT_ID': range(1, n_patients + 1),
             'GENDER': np.random.choice(['M', 'F'], n_patients),
-            'DOB': pd.date_range('1920-01-01', '2000-01-01', periods=n_patients)
+            'ANCHOR_AGE': np.random.normal(65, 15, n_patients).astype(int).clip(18, 91),
+            'ANCHOR_YEAR': np.random.choice(range(2100, 2200), n_patients),
+            'ANCHOR_YEAR_GROUP': np.random.choice(['2008 - 2010', '2011 - 2013', '2014 - 2016', '2017 - 2019', '2020 - 2022'], n_patients)
         })
         
-        # Admissions
+        # Admissions (MIMIC-IV schema)
         admissions = pd.DataFrame({
             'SUBJECT_ID': np.random.choice(range(1, n_patients + 1), n_patients),
             'HADM_ID': range(10000, 10000 + n_patients),
             'ADMISSION_TYPE': np.random.choice(['EMERGENCY', 'ELECTIVE', 'URGENT'], n_patients),
             'HOSPITAL_EXPIRE_FLAG': np.random.choice([0, 1], n_patients, p=[0.85, 0.15]),
-            'ADMITTIME': pd.date_range('2010-01-01', '2019-12-31', periods=n_patients),
+            'ADMITTIME': pd.date_range('2100-01-01', '2200-12-31', periods=n_patients),
             'ETHNICITY': np.random.choice(['WHITE', 'BLACK', 'HISPANIC', 'ASIAN', 'OTHER'], n_patients),
-            'INSURANCE': np.random.choice(['Medicare', 'Medicaid', 'Private'], n_patients)
+            'INSURANCE': np.random.choice(['Medicare', 'Medicaid', 'Private', 'Self-pay'], n_patients)
         })
         
-        # Diagnoses (synthetic ICD-9 codes)
+        # Diagnoses (synthetic ICD-10 codes)
+        icd10_codes = ['A40', 'A41', 'R65.2', 'N17', 'N18', 'N19', 'I21', 'I22', 'E10', 'E11', 'D50', 'D56']
         diagnoses_data = []
         for hadm_id in admissions['HADM_ID']:
             # Add random diagnoses
             n_diagnoses = np.random.poisson(3) + 1
-            for _ in range(n_diagnoses):
+            for seq_num in range(n_diagnoses):
                 diagnoses_data.append({
+                    'SUBJECT_ID': admissions[admissions['HADM_ID'] == hadm_id]['SUBJECT_ID'].values[0],
                     'HADM_ID': hadm_id,
-                    'ICD9_CODE': np.random.choice(['038', '410', '584', '571.2', '250.00', '427.31'])
+                    'SEQ_NUM': seq_num,
+                    'ICD_CODE': np.random.choice(icd10_codes),
+                    'ICD_VERSION': 10
                 })
         
         diagnoses = pd.DataFrame(diagnoses_data)
@@ -183,6 +227,8 @@ class MultiDiseaseExplainableSystem:
             'BILIRUBIN': np.random.normal(1.0, 2.0, n_patients).clip(0.1, 20),
             'ALBUMIN': np.random.normal(3.5, 0.8, n_patients).clip(1.5, 5.0)
         })
+        
+        logger.info("✅ Synthetic MIMIC-IV data created (ICD-10 codes, MIMIC-IV v3.1 schema)")
         
         return {
             'admissions': admissions,

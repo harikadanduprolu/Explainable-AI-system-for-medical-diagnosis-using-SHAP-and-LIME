@@ -1,11 +1,44 @@
 import React, { useState } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import Login from './pages/Login';
+import Signup from './pages/Signup';
+import ClinicalDashboard from './pages/ClinicalDashboard';
 import PredictionForm from './components/PredictionForm';
 import Results from './components/Results';
 import WhatIfAnalysis from './components/WhatIfAnalysis';
 import SamplePatients from './components/SamplePatients';
 import './index.css';
 
-function App() {
+// Protected Route Component
+function ProtectedRoute({ children }) {
+  const { user, token, loading } = useAuth();
+  const location = useLocation();
+
+  if (loading) {
+    return (
+      <div className="app">
+        <main className="main-container">
+          <div className="card">
+            <div className="loading">
+              <div className="loading-spinner" style={{ marginBottom: '0.5rem' }}></div>
+              <p>Restoring secure session...</p>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+  
+  if (!user || !token) {
+    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  }
+  
+  return children;
+}
+
+// Original Prediction App Component
+function PredictionApp() {
   const [activeTab, setActiveTab] = useState('predict');
   const [predictions, setPredictions] = useState(null);
   const [currentPatient, setCurrentPatient] = useState(null);
@@ -97,6 +130,37 @@ function App() {
         )}
       </main>
     </div>
+  );
+}
+
+// Main App with Routing
+function App() {
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route 
+            path="/clinical" 
+            element={
+              <ProtectedRoute>
+                <ClinicalDashboard />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/predict" 
+            element={
+              <ProtectedRoute>
+                <PredictionApp />
+              </ProtectedRoute>
+            } 
+          />
+          <Route path="/" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
 
