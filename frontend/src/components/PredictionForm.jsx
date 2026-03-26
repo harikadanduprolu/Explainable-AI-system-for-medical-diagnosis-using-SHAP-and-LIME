@@ -34,8 +34,24 @@ const DEFAULT_VALUES = {
   lactate: 1.5,
 };
 
+const IMAGING_FINDINGS = [
+  { key: 'pneumonia', label: 'Pneumonia' },
+  { key: 'edema', label: 'Pulmonary Edema' },
+  { key: 'cardiomegaly', label: 'Cardiomegaly' },
+  { key: 'pleural_effusion', label: 'Pleural Effusion' },
+];
+
+const createDefaultImagingMap = () =>
+  IMAGING_FINDINGS.reduce((acc, finding) => ({ ...acc, [finding.key]: 0.2 }), {});
+
 function PredictionForm({ onSubmit, initialData, loading }) {
   const [formData, setFormData] = useState(initialData || DEFAULT_VALUES);
+  const [imagingEnabled, setImagingEnabled] = useState(false);
+  const [imagingData, setImagingData] = useState({
+    dicom_id: '',
+    source: 'manual-entry',
+    findings: createDefaultImagingMap(),
+  });
 
   useEffect(() => {
     if (initialData) {
@@ -51,13 +67,57 @@ function PredictionForm({ onSubmit, initialData, loading }) {
     }));
   };
 
+  const handleImagingToggle = (e) => {
+    setImagingEnabled(e.target.checked);
+  };
+
+  const handleImagingFieldChange = (e) => {
+    const { name, value } = e.target;
+    if (name === 'dicom_id') {
+      setImagingData((prev) => ({ ...prev, dicom_id: value }));
+    } else {
+      setImagingData((prev) => ({
+        ...prev,
+        findings: {
+          ...prev.findings,
+          [name]: Number(value),
+        },
+      }));
+    }
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSubmit(formData);
+    const payload = {
+      features: formData,
+    };
+
+    if (imagingEnabled) {
+      const normalizedFindings = Object.entries(imagingData.findings).reduce(
+        (acc, [key, val]) => ({
+          ...acc,
+          [key]: Math.min(Math.max(parseFloat(val) || 0, 0), 1),
+        }),
+        {}
+      );
+      payload.imaging = {
+        dicom_id: imagingData.dicom_id?.trim() || undefined,
+        source: imagingData.source,
+        findings: normalizedFindings,
+      };
+    }
+
+    onSubmit(payload);
   };
 
   const resetForm = () => {
     setFormData(DEFAULT_VALUES);
+    setImagingEnabled(false);
+    setImagingData({
+      dicom_id: '',
+      source: 'manual-entry',
+      findings: createDefaultImagingMap(),
+    });
   };
 
   return (
@@ -87,6 +147,59 @@ function PredictionForm({ onSubmit, initialData, loading }) {
               />
             </div>
           ))}
+        </div>
+
+        <div className="card" style={{ marginTop: '1.5rem' }}>
+          <div className="card-header">
+            <h3 style={{ marginBottom: '0.25rem' }}>Chest X-ray Evidence (MIMIC-CXR)</h3>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 500 }}>
+              <input
+                type="checkbox"
+                checked={imagingEnabled}
+                onChange={handleImagingToggle}
+              />
+              Provide imaging probabilities to activate the fusion engine
+            </label>
+          </div>
+
+          {imagingEnabled && (
+            <div className="form-grid" style={{ marginTop: '1rem' }}>
+              <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                <label htmlFor="dicom_id">DICOM ID</label>
+                <input
+                  type="text"
+                  id="dicom_id"
+                  name="dicom_id"
+                  value={imagingData.dicom_id}
+                  onChange={handleImagingFieldChange}
+                  placeholder="e.g., 1.2.826..."
+                />
+              </div>
+              {IMAGING_FINDINGS.map((finding) => (
+                <div key={finding.key} className="form-group">
+                  <label htmlFor={finding.key}>
+                    {finding.label} Score
+                    <small style={{ display: 'block', color: 'var(--text-secondary)' }}>
+                      0 (absent) -> 1 (strong evidence)
+                    </small>
+                  </label>
+                  <input
+                    type="range"
+                    id={finding.key}
+                    name={finding.key}
+                    min={0}
+                    max={1}
+                    step={0.05}
+                    value={imagingData.findings[finding.key]}
+                    onChange={handleImagingFieldChange}
+                  />
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                    {(imagingData.findings[finding.key] * 100).toFixed(0)}%
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>

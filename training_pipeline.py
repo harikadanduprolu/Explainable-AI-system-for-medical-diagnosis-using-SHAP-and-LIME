@@ -48,6 +48,12 @@ from sklearn.ensemble import RandomForestClassifier
 import xgboost as xgb
 import joblib
 
+from feature_engineering import (
+    BASE_FEATURES,
+    add_derived_features,
+    get_all_feature_columns,
+)
+
 # Import governance layer
 try:
     from audit_logging import AuditLogger, AuditEventType
@@ -522,6 +528,9 @@ def main():
         generator = SyntheticDataGenerator()
         X = generator.generate_patient_data(n_samples=args.n_samples)
         y_dict = generator.generate_disease_labels(X)
+        engineered = add_derived_features(X[BASE_FEATURES])
+        feature_cols = get_all_feature_columns(engineered)
+        X = engineered[feature_cols]
         
         print(f"✅ Features: {list(X.columns)}")
         print(f"✅ Diseases: {list(y_dict.keys())}")
@@ -537,11 +546,13 @@ def main():
         # Load CSV
         df = pd.read_csv(args.csv_path)
         print(f"✅ Loaded {len(df)} samples from CSV")
-        
-        # Extract features
-        feature_cols = ['age', 'gender', 'heart_rate', 'systolic_bp', 'diastolic_bp',
-                       'temperature', 'respiratory_rate', 'wbc_count', 'hemoglobin',
-                       'platelet_count', 'creatinine', 'bun', 'glucose', 'lactate']
+        missing = [col for col in BASE_FEATURES if col not in df.columns]
+        if missing:
+            raise ValueError(f"CSV is missing required base features: {missing}")
+        engineered = add_derived_features(df[BASE_FEATURES])
+        df = df.drop(columns=BASE_FEATURES, errors='ignore')
+        df = pd.concat([df, engineered], axis=1)
+        feature_cols = get_all_feature_columns(df)
         X = df[feature_cols]
         
         # Extract disease labels

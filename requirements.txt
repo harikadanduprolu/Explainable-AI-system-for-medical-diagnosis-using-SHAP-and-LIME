@@ -1,13 +1,13 @@
 joblib
 more-itertools
 networkx
-numpy
+numpy>=1.23.5,<2.0
 pandas
 pyllars
 scikit-learn
 scipy
 tqdm
-shap>=0.42.0
+shap>=0.42.0,<0.45
 lime>=0.2.0.1
 matplotlib>=3.5.0
 seaborn>=0.11.0
@@ -18,3 +18,6 @@ jupyter>=1.0.0
 ipywidgets>=7.6.0
 dash>=2.0.0
 dash-bootstrap-components>=1.0.0
+google-cloud-storage>=2.0.0
+opencv-python>=4.8.0,<4.11
+tensorflow-intel==2.15.1

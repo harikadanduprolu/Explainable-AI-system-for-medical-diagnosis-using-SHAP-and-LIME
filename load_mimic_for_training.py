@@ -21,9 +21,145 @@ import numpy as np
 from pathlib import Path
 from datetime import datetime
 import argparse
-from typing import Dict, Tuple, Optional
+from typing import Dict, Tuple, Optional, List
 import warnings
+
+from sklearn.model_selection import StratifiedShuffleSplit
+
+from feature_engineering import BASE_FEATURES, add_derived_features, get_all_feature_columns
+
 warnings.filterwarnings('ignore')
+
+DEFAULT_MIMIC_IV_PATH = Path("dataset/mimic4")
+DEFAULT_CXR_METADATA_PATH = Path("dataset/mimic-cxr/mimic-cxr-2.0.0-metadata.csv.gz")
+DEFAULT_CXR_LABELS_PATH = Path("dataset/mimic-cxr/mimic-cxr-jpg-2.1.0-chexpert.csv.gz")
+
+
+def _read_local_csv(path: Path) -> pd.DataFrame:
+    if path.suffix == ".gz":
+        return pd.read_csv(path, compression="gzip")
+    return pd.read_csv(path)
+
+
+def load_local_csv(path: Optional[str]) -> pd.DataFrame:
+    if not path:
+        return pd.DataFrame()
+    file_path = Path(path)
+    if not file_path.exists():
+        print(f"⚠️  File not found: {file_path}")
+        return pd.DataFrame()
+    return _read_local_csv(file_path)
+
+
+def prepare_chexpert_labels(
+    labels_df: pd.DataFrame,
+    label_column: str,
+    uncertain_policy: str = "ones",
+) -> Dict[str, int]:
+    if labels_df.empty:
+        return {}
+    df = labels_df.copy()
+    df.columns = [c.lower() for c in df.columns]
+    if label_column.lower() not in df.columns:
+        raise ValueError(
+            f"Label column '{label_column}' not found in CheXpert file. "
+            f"Available columns: {list(df.columns)}"
+        )
+    series = df[label_column.lower()]
+    if uncertain_policy == "ones":
+        series = series.replace(-1, 1)
+    elif uncertain_policy == "zeros":
+        series = series.replace(-1, 0)
+    else:
+        series = series.replace(-1, np.nan)
+    df = df.assign(_label=series).dropna(subset=["dicom_id", "_label"])
+    df = df[df["_label"].isin([0, 1])]
+    return {str(dicom): int(label) for dicom, label in zip(df["dicom_id"], df["_label"])}
+
+
+def load_cxr_metadata_df(path: Optional[str]) -> pd.DataFrame:
+    metadata = load_local_csv(path)
+    if metadata.empty:
+        return metadata
+    metadata.columns = [c.upper() for c in metadata.columns]
+    required = {"HADM_ID", "DICOM_ID", "STUDY_ID"}
+    if not required.issubset(metadata.columns):
+        print(
+            f"⚠️  CXR metadata missing required columns {required}. "
+            f"Found: {metadata.columns.tolist()}"
+        )
+        return pd.DataFrame()
+    metadata = metadata.dropna(subset=["HADM_ID", "DICOM_ID"]).copy()
+    metadata["HADM_ID"] = metadata["HADM_ID"].astype(int)
+    return metadata
+
+
+def attach_cxr_data(
+    dataset: pd.DataFrame,
+    metadata_df: pd.DataFrame,
+    chexpert_map: Dict[str, int],
+) -> pd.DataFrame:
+    if metadata_df.empty:
+        raise RuntimeError(
+            "CXR metadata is required. Provide --cxr-metadata pointing to the MIMIC-CXR metadata CSV."
+        )
+    dedup = metadata_df.drop_duplicates("HADM_ID")
+    columns = ["HADM_ID", "DICOM_ID", "STUDY_ID"]
+    image_col = None
+    for candidate in ("PATH", "JPEG_PATH", "FILEPATH", "IMG_PATH"):
+        if candidate in dedup.columns:
+            columns.append(candidate)
+            image_col = candidate
+            break
+    merged = dataset.merge(dedup[columns], on="HADM_ID", how="inner")
+    merged = merged.rename(columns={"STUDY_ID": "CXR_STUDY_ID"})
+    if image_col:
+        merged = merged.rename(columns={image_col: "CXR_IMAGE_PATH"})
+    else:
+        merged["CXR_IMAGE_PATH"] = ""
+    if chexpert_map:
+        merged["CXR_LABEL"] = merged["DICOM_ID"].map(chexpert_map)
+        merged = merged.dropna(subset=["CXR_LABEL"])
+    if merged.empty:
+        raise RuntimeError(
+            "No overlapping admissions between MIMIC-IV dataset and provided CXR metadata/labels."
+        )
+    return merged
+
+
+def apply_stratified_splits(
+    dataset: pd.DataFrame,
+    disease_cols: List[str],
+    seed: int = 42,
+) -> pd.DataFrame:
+    dataset = dataset.copy()
+    dataset["split"] = "train"
+    signature = dataset[disease_cols].astype(str).agg("".join, axis=1)
+    if signature.nunique() <= 1:
+        n = len(dataset)
+        train_end = int(0.7 * n)
+        val_end = train_end + int(0.15 * n)
+        dataset.iloc[train_end:val_end, dataset.columns.get_loc("split")] = "val"
+        dataset.iloc[val_end:, dataset.columns.get_loc("split")] = "test"
+        return dataset
+
+    splitter = StratifiedShuffleSplit(
+        n_splits=1,
+        test_size=0.30,
+        random_state=seed,
+    )
+    train_idx, temp_idx = next(splitter.split(dataset, signature))
+    temp_signature = signature.iloc[temp_idx]
+    temp_indices = dataset.index[temp_idx]
+    temp_splitter = StratifiedShuffleSplit(
+        n_splits=1,
+        test_size=0.50,
+        random_state=seed,
+    )
+    val_idx, test_idx = next(temp_splitter.split(temp_signature, temp_signature))
+    dataset.loc[temp_indices[val_idx], "split"] = "val"
+    dataset.loc[temp_indices[test_idx], "split"] = "test"
+    return dataset
 
 
 # ICD-10 code mappings for 8 diseases (MIMIC-IV uses ICD-10)
@@ -508,7 +644,15 @@ class MIMICDataLoader:
                      'respiratory_rate', 'wbc_count', 'hemoglobin', 'platelet_count',
                      'creatinine', 'bun', 'glucose', 'lactate']]
     
-    def create_training_dataset(self, max_patients: int = 5000, output_file: str = None) -> pd.DataFrame:
+    def create_training_dataset(
+        self,
+        max_patients: int = 5000,
+        output_file: str = None,
+        cxr_metadata: Optional[str] = None,
+        cxr_labels: Optional[str] = None,
+        cxr_label_column: str = "Pneumonia",
+        cxr_uncertain_policy: str = "ones",
+    ) -> pd.DataFrame:
         """Create complete training dataset with features and labels."""
         print("\n" + "="*60)
         print("Creating MIMIC-IV v3.1 Training Dataset")
@@ -547,13 +691,30 @@ class MIMICDataLoader:
         
         # Merge features with labels
         dataset = features.merge(disease_labels, on='HADM_ID', how='inner')
-        
-        # Drop ID columns
-        dataset = dataset.drop(['HADM_ID', 'ICUSTAY_ID'], axis=1)
+
+        # Derived clinical features
+        engineered = add_derived_features(dataset[BASE_FEATURES])
+        dataset = dataset.drop(columns=BASE_FEATURES, errors='ignore')
+        dataset = pd.concat([dataset, engineered], axis=1)
+
+        print(f"\n📷 Linking to MIMIC-CXR metadata...")
+        cxr_metadata_df = load_cxr_metadata_df(cxr_metadata)
+        chexpert_df = load_local_csv(cxr_labels)
+        chexpert_map = prepare_chexpert_labels(
+            chexpert_df,
+            cxr_label_column,
+            cxr_uncertain_policy,
+        )
+        dataset = attach_cxr_data(dataset, cxr_metadata_df, chexpert_map)
+        print(f"   ✅ Patients with paired clinical + imaging data: {len(dataset)}")
+
+        disease_cols = [col for col in list(DISEASE_ICD10_CODES.keys()) + ['mortality'] if col in dataset.columns]
+        dataset = apply_stratified_splits(dataset, disease_cols)
+        print("   ✅ Stratified splits assigned (70/15/15)")
         
         print(f"\n✅ Final dataset: {dataset.shape}")
-        print(f"   Features: {dataset.shape[1] - 8} clinical variables")
-        print(f"   Labels: 8 diseases")
+        print(f"   Features: {len(get_all_feature_columns(dataset))} engineered variables")
+        print(f"   Labels: {len(disease_cols)} diseases")
         print(f"   Samples: {len(dataset)} patients")
         
         # Save if output file specified
@@ -569,7 +730,11 @@ def main():
     parser.add_argument(
         '--mimic-path',
         type=str,
-        help="Path to MIMIC-IV v3.1 dataset (should contain 'hosp' and 'icu' subdirectories)"
+        default=str(DEFAULT_MIMIC_IV_PATH) if DEFAULT_MIMIC_IV_PATH.exists() else None,
+        help=(
+            "Path to MIMIC-IV v3.1 dataset (should contain 'hosp' and 'icu' subdirectories). "
+            "Defaults to dataset/mimic4 when it exists."
+        )
     )
     parser.add_argument(
         '--bigquery',
@@ -585,6 +750,30 @@ def main():
         '--credentials-json',
         type=str,
         help="Path to GCP service-account JSON for BigQuery auth (no gcloud required)"
+    )
+    parser.add_argument(
+        '--cxr-metadata',
+        type=str,
+        default=str(DEFAULT_CXR_METADATA_PATH) if DEFAULT_CXR_METADATA_PATH.exists() else None,
+        help="Path to mimic-cxr metadata CSV (must contain HADM_ID, STUDY_ID, DICOM_ID)"
+    )
+    parser.add_argument(
+        '--cxr-labels',
+        type=str,
+        default=str(DEFAULT_CXR_LABELS_PATH) if DEFAULT_CXR_LABELS_PATH.exists() else None,
+        help="Path to CheXpert label CSV (mimic-cxr-jpg-2.1.0-chexpert.csv.gz)"
+    )
+    parser.add_argument(
+        '--cxr-label-column',
+        type=str,
+        default="Pneumonia",
+        help="CheXpert label column to use when filtering imaging data"
+    )
+    parser.add_argument(
+        '--cxr-uncertain-policy',
+        choices=['ones', 'zeros', 'drop'],
+        default='ones',
+        help="How to treat uncertain (-1) CheXpert labels when linking imaging data"
     )
     parser.add_argument(
         '--output',
@@ -621,10 +810,11 @@ def main():
     else:
         # Check if path exists
         if not args.mimic_path:
-            print("❌ MIMIC path not provided")
+            print("❌ MIMIC path not provided and default dataset/mimic4 was not found.")
             print("\n💡 Options:")
-            print("   1. Local files: python load_mimic_for_training.py --mimic-path /path/to/mimic-iv-v3.1")
-            print("   2. BigQuery: python load_mimic_for_training.py --bigquery --project-id YOUR_PROJECT")
+            print("   1. Place the PhysioNet download under dataset/mimic4 (with hosp/ and icu/ folders).")
+            print("   2. Provide an explicit path: python load_mimic_for_training.py --mimic-path /path/to/mimic-iv-v3.1")
+            print("   3. Use BigQuery: python load_mimic_for_training.py --bigquery --project-id YOUR_PROJECT")
             print("\n📥 Download MIMIC-IV v3.1 from PhysioNet:")
             print("   https://physionet.org/content/mimiciv/3.1/")
             print("   Files location: /hosp and /icu subdirectories with CSV files")
@@ -644,7 +834,11 @@ def main():
     # Load and process data
     dataset = loader.create_training_dataset(
         max_patients=args.max_patients,
-        output_file=args.output
+        output_file=args.output,
+        cxr_metadata=args.cxr_metadata,
+        cxr_labels=args.cxr_labels,
+        cxr_label_column=args.cxr_label_column,
+        cxr_uncertain_policy=args.cxr_uncertain_policy,
     )
     
     print("\n" + "="*60)

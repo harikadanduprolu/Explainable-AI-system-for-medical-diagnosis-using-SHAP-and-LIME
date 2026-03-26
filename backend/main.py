@@ -30,6 +30,9 @@ import joblib
 import os
 from dotenv import load_dotenv
 
+from feature_engineering import BASE_FEATURES, add_derived_features
+from multimodal_fusion import MultimodalFusionEngine
+
 # Load environment variables
 load_dotenv()
 
@@ -43,6 +46,10 @@ SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*").split(",")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 ENABLE_API_DOCS = os.getenv("ENABLE_API_DOCS", "true").lower() == "true"
+CXR_LABELS_PATH = os.getenv(
+    "CXR_LABELS_PATH",
+    str(Path("dataset") / "mimiccxr" / "mimic-cxr-jpg-2.1.0-chexpert.csv.gz"),
+)
 
 # Configure logging
 logging.basicConfig(
@@ -157,11 +164,28 @@ class PatientFeatures(BaseModel):
     lactate: float = Field(..., ge=0.5, le=25, description="Lactate (mmol/L)")
 
 
+class ImagingEvidence(BaseModel):
+    """Optional imaging findings derived from MIMIC-CXR or CheXpert pipeline."""
+    dicom_id: Optional[str] = Field(None, description="MIMIC-CXR DICOM identifier")
+    source: Optional[str] = Field(
+        default="manual-entry",
+        description="Where the imaging probabilities originated (manual-entry, auto-inference, repository)",
+    )
+    findings: Optional[Dict[str, float]] = Field(
+        default=None,
+        description="Normalized CheXpert-style findings (0-1) keyed by label name",
+    )
+
+
 class PredictionRequest(BaseModel):
     """Request for disease prediction."""
     patient_id: Optional[str] = Field(None, description="Patient identifier")
     features: PatientFeatures
     diseases: Optional[List[str]] = Field(None, description="Specific diseases to predict")
+    imaging: Optional[ImagingEvidence] = Field(
+        default=None,
+        description="Optional imaging evidence (CXR) linked to the patient",
+    )
 
 
 class FeatureImportance(BaseModel):
@@ -182,12 +206,34 @@ class DiseasePrediction(BaseModel):
     top_features: List[FeatureImportance] = []
 
 
+class FusedPrediction(BaseModel):
+    """Fused output that blends tabular, imaging, and severity evidence."""
+    disease: str
+    tabular_risk: float
+    fused_score: float
+    agreement_index: float
+    severity_modifier: Optional[float] = None
+    imaging_signal: Optional[float] = None
+    governance_flag: Optional[str] = None
+
+
+class MultimodalSummary(BaseModel):
+    """Summary of fusion process for governance/patent claims."""
+    consistency_index: float
+    fused_predictions: List[FusedPrediction]
+    alerts: List[str]
+    imaging_channels_used: List[str]
+    severity_channels: Dict[str, float]
+    data_sources: Dict[str, str]
+
+
 class PredictionResponse(BaseModel):
     """Complete prediction response."""
     patient_id: Optional[str]
     timestamp:str
     predictions: List[DiseasePrediction]
     overall_risk_category: str
+    multimodal_summary: Optional[MultimodalSummary] = None
 
 
 class WhatIfRequest(BaseModel):
@@ -251,58 +297,13 @@ class ModelManager:
         logger.info(f"📊 Loaded {len(self.models)}/{len(self.DISEASES)} models")
     
     def engineer_features(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Engineer advanced features."""
-        X = df.copy()
-        eps = 1e-6
-        
-        # Physiological ratios
-        X['hr_bp_ratio'] = X['heart_rate'] / (X['systolic_bp'] + eps)
-        X['shock_index'] = X['heart_rate'] / (X['systolic_bp'] + eps)
-        X['map'] = (X['systolic_bp'] + 2 * X['diastolic_bp']) / 3
-        X['pulse_pressure'] = X['systolic_bp'] - X['diastolic_bp']
-        
-        # Kidney function
-        X['creat_bun_ratio'] = X['creatinine'] / (X['bun'] + eps)
-        X['kidney_damage'] = X['creatinine'] * X['bun'] / 100
-        
-        # Metabolic
-        X['age_glucose'] = X['age'] * X['glucose'] / 100
-        X['bmi_proxy'] = X['age'] / 2
-        
-        # Hematologic
-        X['hemoglobin_age'] = X['hemoglobin'] * (100 - X['age']) / 100
-        X['platelet_wbc_ratio'] = X['platelet_count'] / (X['wbc_count'] + eps)
-        
-        # Clinical scores
-        X['sepsis_score'] = (
-            (X['temperature'] > 100.4).astype(int) +
-            (X['temperature'] < 96.8).astype(int) +
-            (X['heart_rate'] > 90).astype(int) +
-            (X['respiratory_rate'] > 20).astype(int) +
-            (X['wbc_count'] > 12).astype(int) +
-            (X['wbc_count'] < 4).astype(int)
-        )
-        
-        X['kidney_score'] = (
-            (X['creatinine'] > 1.5).astype(int) +
-            (X['bun'] > 25).astype(int) +
-            (X['creatinine'] > 2.5).astype(int)
-        )
-        
-        X['cardiac_score'] = (
-            (X['heart_rate'] > 100).astype(int) +
-            (X['systolic_bp'] > 140).astype(int) +
-            (X['systolic_bp'] < 90).astype(int)
-        )
-        
-        # Interaction terms
-        X['age_squared'] = X['age'] ** 2
-        X['glucose_squared'] = (X['glucose'] / 100) ** 2
-        X['lactate_squared'] = X['lactate'] ** 2
-        X['hr_map_interaction'] = X['heart_rate'] * X['map'] / 1000
-        X['temp_wbc_interaction'] = X['temperature'] * X['wbc_count'] / 100
-        
-        return X
+        """Engineer features consistent with training pipeline."""
+        base_df = df.copy()
+        missing = [col for col in BASE_FEATURES if col not in base_df.columns]
+        if missing:
+            raise ValueError(f"Missing base features for inference: {missing}")
+        engineered = add_derived_features(base_df[BASE_FEATURES])
+        return engineered
     
     def predict(self, features: PatientFeatures, disease: str) -> DiseasePrediction:
         """Make prediction for a single disease."""
@@ -377,8 +378,11 @@ class ModelManager:
         return predictions
 
 
-# Initialize model manager
+# Initialize model + fusion managers
 model_manager = ModelManager()
+fusion_engine = MultimodalFusionEngine(
+    labels_path=CXR_LABELS_PATH if Path(CXR_LABELS_PATH).exists() else None
+)
 
 
 # ============================================================================
@@ -484,12 +488,27 @@ async def predict_diseases(request: PredictionRequest):
             overall_risk = "HIGH"
         else:
             overall_risk = "CRITICAL"
+
+        fusion_summary = None
+        try:
+            fusion_payload = fusion_engine.fuse(
+                base_features=request.features.dict(),
+                predictions=predictions,
+                imaging_signal=request.imaging.findings if request.imaging else None,
+                dicom_id=request.imaging.dicom_id if request.imaging else None,
+                imaging_source=request.imaging.source if request.imaging else None,
+            )
+            if fusion_payload:
+                fusion_summary = MultimodalSummary(**fusion_payload)
+        except Exception as fusion_error:
+            logger.warning(f"Fusion engine fallback: {fusion_error}")
         
         return PredictionResponse(
             patient_id=request.patient_id,
             timestamp=datetime.now().isoformat(),
             predictions=predictions,
-            overall_risk_category=overall_risk
+            overall_risk_category=overall_risk,
+            multimodal_summary=fusion_summary
         )
     
     except Exception as e:

@@ -65,6 +65,13 @@ python enhanced_dashboard_with_whatif.py
 # Access at: http://127.0.0.1:8051
 ```
 
+## 📦 **Datasets & Data Access**
+
+- **MIMIC-IV v3.1** (https://physionet.org/content/mimiciv/3.1/) – download the release, keep the `hosp/` and `icu/` folders under `dataset/mimic4/`, and run `python load_mimic_for_training.py` (defaults to that path).
+- **MIMIC-CXR-JPG** (Google Cloud Storage) – stream chest radiographs and CheXpert labels directly from the public bucket using `train_mimic_cxr_from_gcs.py` with either service-account credentials or `--use-anonymous-gcs`.
+
+The FastAPI backend consumes the structured CSV outputs from MIMIC-IV plus any image-derived scores you generate from the CXR trainer, and the React frontend exclusively calls those FastAPI endpoints.
+
 ---
 
 ## 🏥 **For Healthcare Professionals - How to Understand This System**
@@ -345,6 +352,36 @@ pip install shap lime plotly dash pandas scikit-learn
 - [ ] Clinical workflow integration testing
 - [ ] Provider usability studies
 - [ ] Safety and efficacy validation
+
+## Path to a Patent-Grade, Deployable System
+
+To evolve the prototype into a patentable, clinically deployable platform, we need parallel workstreams:
+
+1. **Document Novelty & Claims**
+   - Commission a formal prior-art search across XAI medical tools.
+   - Capture the truly novel mechanisms (ensemble governance, regulated explainability workflows) in disclosures for IP counsel.
+
+2. **Clinical Validation & Data Integrity**
+   - Run multi-site validation with audited data provenance, bias assessments, and FDA-style verification/validation reporting.
+   - Maintain HIPAA/GDPR-compliant data pipelines and traceable preprocessing SOPs.
+
+3. **Explainability Innovation**
+   - Extend beyond SHAP/LIME with causal reasoning, adaptive what-if engines, or clinician feedback loops.
+   - Quantify improvements in decision quality or clinician trust through studies.
+
+4. **Safety, Governance & Monitoring**
+   - Implement tamper-evident audit logs, drift/alerting pipelines, retraining workflows, and human-in-the-loop overrides.
+   - Define escalation policies and periodic safety reviews tied to model metrics.
+
+5. **Hardened Deployment Architecture**
+   - Provide reproducible CI/CD, container hardening, secret rotation, failover playbooks, and model lifecycle documentation.
+   - Demonstrate end-to-end observability (uptime, latency, explanation SLAs).
+
+6. **Legal & Regulatory Strategy**
+   - Align with IP counsel on claim scope and filing order.
+   - Produce FDA SaMD documentation plus commercialization/licensing plans.
+
+Deliverables from each track feed both patent prosecution (novelty + claims) and regulatory submissions (safety + efficacy), closing the gap between research prototype and production medical device.
 
 ---
 

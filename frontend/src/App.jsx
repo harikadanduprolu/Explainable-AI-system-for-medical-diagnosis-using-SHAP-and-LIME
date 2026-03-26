@@ -44,7 +44,8 @@ function PredictionApp() {
   const [currentPatient, setCurrentPatient] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const handlePrediction = async (patientData) => {
+  const handlePrediction = async (payload) => {
+    const { features, imaging } = payload;
     setLoading(true);
     try {
       const response = await fetch('/api/predict', {
@@ -54,7 +55,8 @@ function PredictionApp() {
         },
         body: JSON.stringify({
           patient_id: `P${Date.now()}`,
-          features: patientData,
+          features,
+          imaging,
         }),
       });
 
@@ -64,7 +66,7 @@ function PredictionApp() {
 
       const data = await response.json();
       setPredictions(data);
-      setCurrentPatient(patientData);
+      setCurrentPatient(features);
     } catch (error) {
       console.error('Error:', error);
       alert('Failed to get predictions. Please check if the backend is running.');
@@ -75,7 +77,7 @@ function PredictionApp() {
 
   const loadSamplePatient = (sample) => {
     setCurrentPatient(sample.features);
-    handlePrediction(sample.features);
+    handlePrediction({ features: sample.features });
   };
 
   return (
