@@ -180,7 +180,7 @@ function PredictionForm({ onSubmit, initialData, loading }) {
                   <label htmlFor={finding.key}>
                     {finding.label} Score
                     <small style={{ display: 'block', color: 'var(--text-secondary)' }}>
-                      0 (absent) -> 1 (strong evidence)
+                      0 (absent) {"→"} 1 (strong evidence)
                     </small>
                   </label>
                   <input

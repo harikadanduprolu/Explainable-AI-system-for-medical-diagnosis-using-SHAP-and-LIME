@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import ClinicalDashboard from './pages/ClinicalDashboard';
+import LandingPage from './pages/LandingPage';
 import PredictionForm from './components/PredictionForm';
 import Results from './components/Results';
 import WhatIfAnalysis from './components/WhatIfAnalysis';
@@ -151,15 +152,8 @@ function App() {
               </ProtectedRoute>
             } 
           />
-          <Route 
-            path="/predict" 
-            element={
-              <ProtectedRoute>
-                <PredictionApp />
-              </ProtectedRoute>
-            } 
-          />
-          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="/predict" element={<PredictionApp />} />
+          <Route path="/" element={<LandingPage />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

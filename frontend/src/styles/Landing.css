@@ -1,0 +1,227 @@
+.landing {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #0c1d2a 0%, #0c1d2a 35%, #0f2738 100%);
+  color: #f7fafc;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.landing-hero {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+  padding: 4rem clamp(1.5rem, 5vw, 5rem) 3rem;
+  align-items: center;
+}
+
+.hero-content h1 {
+  font-size: clamp(2.5rem, 4vw, 3.5rem);
+  line-height: 1.15;
+  margin: 1rem 0;
+}
+
+.hero-content h1 span {
+  display: block;
+  color: #7ae0ff;
+}
+
+.hero-subtitle {
+  color: #cbd5e1;
+  max-width: 640px;
+  font-size: 1.05rem;
+}
+
+.hero-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.9rem;
+  background: rgba(122, 224, 255, 0.1);
+  border-radius: 999px;
+  font-size: 0.85rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.hero-cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.hero-cta .btn-primary,
+.hero-cta .btn-secondary {
+  padding: 0.85rem 1.6rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-primary {
+  background: #05c4f4;
+  color: #04131f;
+  box-shadow: 0 15px 35px rgba(5, 196, 244, 0.35);
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f7fafc;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.hero-cta a:hover {
+  transform: translateY(-2px);
+}
+
+.hero-card {
+  background: rgba(11, 21, 32, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1.25rem;
+  padding: 1.75rem;
+  box-shadow: 0 25px 45px rgba(0, 0, 0, 0.35);
+}
+
+.hero-card h3 {
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
+}
+
+.hero-card ul {
+  list-style: disc;
+  padding-left: 1.25rem;
+  color: #d4e4f7;
+}
+
+.hero-note,
+.card-footer {
+  color: #89a3bc;
+  font-size: 0.9rem;
+}
+
+.landing-stats {
+  margin: 0 auto;
+  padding: 0 clamp(1.5rem, 5vw, 5rem);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.5rem;
+}
+
+.stat-card {
+  background: rgba(10, 17, 29, 0.8);
+  border-radius: 1rem;
+  padding: 1.75rem;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #7ae0ff;
+}
+
+.stat-note {
+  color: #91a8c3;
+}
+
+.landing-features,
+.landing-workflow,
+.landing-cta {
+  padding: 3rem clamp(1.5rem, 5vw, 5rem);
+}
+
+.section-header {
+  text-align: center;
+  max-width: 720px;
+  margin: 0 auto 2rem;
+}
+
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+}
+
+.feature-card {
+  background: rgba(6, 12, 20, 0.85);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  min-height: 190px;
+}
+
+.landing-workflow {
+  background: rgba(3, 9, 18, 0.75);
+}
+
+.workflow-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 auto;
+  max-width: 840px;
+  display: grid;
+  gap: 1rem;
+}
+
+.workflow-list li {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(122, 224, 255, 0.15);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.workflow-index {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(122, 224, 255, 0.12);
+  color: #7ae0ff;
+  display: grid;
+  place-items: center;
+  font-weight: 600;
+}
+
+.landing-cta .cta-card {
+  background: linear-gradient(135deg, #06b6d4, #2563eb);
+  border-radius: 1.5rem;
+  padding: 2.5rem;
+  text-align: center;
+  color: #e6f2ff;
+  box-shadow: 0 35px 45px rgba(0, 0, 0, 0.35);
+}
+
+.landing-footer {
+  padding: 2rem clamp(1.5rem, 5vw, 5rem);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(2, 6, 12, 0.8);
+}
+
+.footer-links {
+  display: flex;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.footer-links a {
+  color: #7ae0ff;
+  text-decoration: none;
+  font-size: 0.95rem;
+}
+
+@media (max-width: 700px) {
+  .landing-hero {
+    padding-top: 3rem;
+  }
+
+  .workflow-list li {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

@@ -114,7 +114,13 @@ async def signup(user_data: UserSignup):
     - **password**: Strong password (min 8 chars, uppercase, lowercase, digit)
     - **full_name**: Optional full name
     """
-    users_collection = get_users_collection()
+    try:
+        users_collection = get_users_collection()
+    except RuntimeError as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Database unavailable. Please check MongoDB connection."
+        )
     
     # Check if user already exists
     existing_user = await users_collection.find_one({

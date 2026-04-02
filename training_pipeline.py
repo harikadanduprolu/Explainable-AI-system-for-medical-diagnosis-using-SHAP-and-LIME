@@ -6,7 +6,7 @@ Production Training Pipeline for Clinical AI System
 FDA/EU Compliant Training with Full Governance
 
 Features:
-- Synthetic or real data loading
+- Real data loading from CSV/MIMIC exports
 - Multi-disease model training (Sepsis, AKI, CV, Mortality)
 - Automatic ModelRegistry integration
 - Audit logging for all training events
@@ -14,14 +14,11 @@ Features:
 - Model persistence (.pkl files)
 
 Usage:
-    # Train on synthetic data
-    python training_pipeline.py --data-source synthetic --n-samples 10000
-    
     # Train on CSV
     python training_pipeline.py --data-source csv --csv-path data/mimic.csv
-    
-    # Quick demo
-    python training_pipeline.py --quick-demo
+
+    # Train using default MIMIC CSV path
+    python training_pipeline.py --data-source mimic
 
 Author: Clinical AI Team
 Date: 2026-01-14
@@ -35,10 +32,10 @@ import json
 import hashlib
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List
 import numpy as np
 import pandas as pd
-from sklearn.model_selection import train_test_split, StratifiedKFold
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import (
     roc_auc_score, accuracy_score, precision_recall_fscore_support,
@@ -49,9 +46,7 @@ import xgboost as xgb
 import joblib
 
 from feature_engineering import (
-    BASE_FEATURES,
-    add_derived_features,
-    get_all_feature_columns,
+    BASE_FEATURES
 )
 
 # Import governance layer
@@ -62,143 +57,6 @@ try:
 except ImportError:
     print("⚠️  Governance modules not found. Running without audit trail.")
     GOVERNANCE_AVAILABLE = False
-
-
-class SyntheticDataGenerator:
-    """Generate realistic synthetic clinical data for training."""
-    
-    @staticmethod
-    def generate_patient_data(n_samples: int = 10000, random_state: int = 42) -> pd.DataFrame:
-        """Generate synthetic patient features."""
-        np.random.seed(random_state)
-        
-        # Patient demographics
-        age = np.random.normal(65, 15, n_samples).clip(18, 95)
-        gender = np.random.choice([0, 1], n_samples)  # 0=F, 1=M
-        
-        # Vital signs
-        heart_rate = np.random.normal(80, 15, n_samples).clip(40, 180)
-        systolic_bp = np.random.normal(130, 20, n_samples).clip(80, 200)
-        diastolic_bp = np.random.normal(80, 12, n_samples).clip(50, 120)
-        temperature = np.random.normal(98.6, 1.2, n_samples).clip(95, 105)
-        resp_rate = np.random.normal(16, 4, n_samples).clip(8, 40)
-        
-        # Lab values
-        wbc_count = np.random.lognormal(2.0, 0.4, n_samples).clip(2, 30)  # K/µL
-        hemoglobin = np.random.normal(12.5, 2.0, n_samples).clip(6, 18)  # g/dL
-        platelet_count = np.random.normal(250, 80, n_samples).clip(50, 500)  # K/µL
-        creatinine = np.random.lognormal(0.2, 0.5, n_samples).clip(0.5, 10)  # mg/dL
-        bun = np.random.normal(20, 10, n_samples).clip(5, 100)  # mg/dL
-        glucose = np.random.normal(120, 40, n_samples).clip(50, 500)  # mg/dL
-        lactate = np.random.lognormal(0.5, 0.6, n_samples).clip(0.5, 15)  # mmol/L
-        
-        # Create DataFrame
-        df = pd.DataFrame({
-            'age': age,
-            'gender': gender,
-            'heart_rate': heart_rate,
-            'systolic_bp': systolic_bp,
-            'diastolic_bp': diastolic_bp,
-            'temperature': temperature,
-            'respiratory_rate': resp_rate,
-            'wbc_count': wbc_count,
-            'hemoglobin': hemoglobin,
-            'platelet_count': platelet_count,
-            'creatinine': creatinine,
-            'bun': bun,
-            'glucose': glucose,
-            'lactate': lactate
-        })
-        
-        return df
-    
-    @staticmethod
-    def generate_disease_labels(df: pd.DataFrame) -> Dict[str, np.ndarray]:
-        """Generate disease labels based on clinical logic."""
-        n = len(df)
-        
-        # Sepsis (high temp + high WBC + high lactate)
-        sepsis_risk = (
-            0.05 +
-            0.3 * ((df['temperature'] - 98.6).abs() / 5).clip(0, 1) +
-            0.3 * ((df['wbc_count'] - 10) / 10).clip(0, 1) +
-            0.35 * ((df['lactate'] - 1) / 5).clip(0, 1)
-        )
-        sepsis = (np.random.random(n) < sepsis_risk).astype(int)
-        
-        # Acute Kidney Injury (high creatinine + high BUN)
-        aki_risk = (
-            0.15 +
-            0.5 * ((df['creatinine'] - 1.0) / 3).clip(0, 1) +
-            0.35 * ((df['bun'] - 20) / 30).clip(0, 1)
-        )
-        aki = (np.random.random(n) < aki_risk).astype(int)
-        
-        # Heart Disease (age + BP + glucose)
-        heart_disease_risk = (
-            0.05 +
-            0.3 * ((df['age'] - 40) / 40).clip(0, 1) +
-            0.35 * ((df['systolic_bp'] - 120) / 60).clip(0, 1) +
-            0.3 * ((df['glucose'] - 100) / 200).clip(0, 1)
-        )
-        heart_disease = (np.random.random(n) < heart_disease_risk).astype(int)
-        
-        # Diabetes (high glucose + age)
-        diabetes_risk = (
-            0.08 +
-            0.6 * ((df['glucose'] - 100) / 200).clip(0, 1) +
-            0.32 * ((df['age'] - 40) / 40).clip(0, 1)
-        )
-        diabetes = (np.random.random(n) < diabetes_risk).astype(int)
-        
-        # Anemia (low hemoglobin)
-        anemia_risk = (
-            0.10 +
-            0.7 * ((13 - df['hemoglobin']) / 8).clip(0, 1) +
-            0.2 * ((df['age'] - 30) / 50).clip(0, 1)
-        )
-        anemia = (np.random.random(n) < anemia_risk).astype(int)
-        
-        # Thalassemia (low hemoglobin + abnormal RBC pattern - simulated)
-        thalassemia_risk = (
-            0.05 +
-            0.5 * ((13 - df['hemoglobin']) / 8).clip(0, 1) +
-            0.3 * ((200 - df['platelet_count']) / 100).clip(0, 1) +
-            0.2 * ((df['age'] - 20) / 30).clip(0, 1)
-        )
-        thalassemia = (np.random.random(n) < thalassemia_risk).astype(int)
-        
-        # Thrombocytopenia (low platelet count)
-        thrombocytopenia_risk = (
-            0.08 +
-            0.7 * ((200 - df['platelet_count']) / 150).clip(0, 1) +
-            0.3 * sepsis
-        )
-        thrombocytopenia = (np.random.random(n) < thrombocytopenia_risk).astype(int)
-        
-        # Mortality (combination of severe factors)
-        mortality_risk = (
-            0.05 +
-            0.15 * ((df['age'] - 50) / 40).clip(0, 1) +
-            0.15 * sepsis +
-            0.15 * aki +
-            0.15 * heart_disease +
-            0.1 * anemia +
-            0.1 * thrombocytopenia +
-            0.2 * ((df['lactate'] - 2) / 8).clip(0, 1)
-        )
-        mortality = (np.random.random(n) < mortality_risk).astype(int)
-        
-        return {
-            'sepsis': sepsis,
-            'kidney_failure': aki,
-            'heart_disease': heart_disease,
-            'diabetes': diabetes,
-            'anemia': anemia,
-            'thalassemia': thalassemia,
-            'thrombocytopenia': thrombocytopenia,
-            'mortality': mortality
-        }
 
 
 class ClinicalModelTrainer:
@@ -226,7 +84,6 @@ class ClinicalModelTrainer:
             self.audit_logger = None
             self.model_registry = None
         
-        self.scaler = StandardScaler()
         self.trained_models = {}
         self.feature_names = None
     
@@ -262,26 +119,10 @@ class ClinicalModelTrainer:
         if self.feature_names is None:
             self.feature_names = list(X_train.columns)
         
-        # Feature engineering: Add interaction features for better discrimination
-        X_train_eng = X_train.copy()
-        X_val_eng = X_val.copy()
-        
-        # Add key clinical interactions
-        X_train_eng['hr_bp_ratio'] = X_train['heart_rate'] / (X_train['systolic_bp'] + 1)
-        X_val_eng['hr_bp_ratio'] = X_val['heart_rate'] / (X_val['systolic_bp'] + 1)
-        
-        X_train_eng['creat_bun_ratio'] = X_train['creatinine'] / (X_train['bun'] + 1)
-        X_val_eng['creat_bun_ratio'] = X_val['creatinine'] / (X_val['bun'] + 1)
-        
-        X_train_eng['age_glucose'] = X_train['age'] * X_train['glucose'] / 100
-        X_val_eng['age_glucose'] = X_val['age'] * X_val['glucose'] / 100
-        
-        X_train_eng['shock_index'] = X_train['heart_rate'] / (X_train['systolic_bp'] + 1)
-        X_val_eng['shock_index'] = X_val['heart_rate'] / (X_val['systolic_bp'] + 1)
-        
-        # Scale features
-        X_train_scaled = self.scaler.fit_transform(X_train_eng)
-        X_val_scaled = self.scaler.transform(X_val_eng)
+        # Scale base features only (no synthetic interaction formulas).
+        scaler = StandardScaler()
+        X_train_scaled = scaler.fit_transform(X_train)
+        X_val_scaled = scaler.transform(X_val)
         
         # Calculate class imbalance weight
         n_positive = y_train.sum()
@@ -360,7 +201,7 @@ class ClinicalModelTrainer:
         
         model_bundle = {
             'model': model,
-            'scaler': self.scaler,
+            'scaler': scaler,
             'feature_names': self.feature_names,
             'disease': disease,
             'model_type': model_type,
@@ -405,7 +246,7 @@ class ClinicalModelTrainer:
             disease=disease,
             model_name=model_type,
             model_version=version,
-            training_data_version="synthetic_v1",
+            training_data_version="dataset_csv_v1",
             training_data_hash=training_data_hash,
             feature_schema_hash=feature_schema_hash,
             hyperparameters={
@@ -494,25 +335,17 @@ class ClinicalModelTrainer:
 def main():
     """Main training pipeline."""
     parser = argparse.ArgumentParser(description="Train clinical AI models")
-    parser.add_argument('--data-source', type=str, default='synthetic',
-                       choices=['synthetic', 'csv', 'mimic'],
+    parser.add_argument('--data-source', type=str, default='mimic',
+                       choices=['csv', 'mimic'],
                        help='Data source')
     parser.add_argument('--csv-path', type=str, default=None,
                        help='Path to CSV file if data-source=csv')
-    parser.add_argument('--n-samples', type=int, default=10000,
-                       help='Number of samples for synthetic data')
     parser.add_argument('--output-dir', type=str, default='trained_models',
                        help='Output directory for models')
-    parser.add_argument('--quick-demo', action='store_true',
-                       help='Quick demo with 1000 samples')
     parser.add_argument('--no-governance', action='store_true',
                        help='Disable governance layer')
     
     args = parser.parse_args()
-    
-    if args.quick_demo:
-        args.n_samples = 1000
-        print("🚀 Quick Demo Mode (1000 samples)")
     
     print("\n" + "="*60)
     print("Clinical AI Training Pipeline")
@@ -522,52 +355,40 @@ def main():
     print(f"Output: {args.output_dir}/")
     print("="*60)
     
-    # Generate data
-    if args.data_source == 'synthetic':
-        print(f"\n📊 Generating {args.n_samples} synthetic patients...")
-        generator = SyntheticDataGenerator()
-        X = generator.generate_patient_data(n_samples=args.n_samples)
-        y_dict = generator.generate_disease_labels(X)
-        engineered = add_derived_features(X[BASE_FEATURES])
-        feature_cols = get_all_feature_columns(engineered)
-        X = engineered[feature_cols]
-        
-        print(f"✅ Features: {list(X.columns)}")
-        print(f"✅ Diseases: {list(y_dict.keys())}")
-        
-        for disease, y in y_dict.items():
-            print(f"   - {disease}: {y.sum()} positive ({y.mean():.1%})")
-    
-    elif args.data_source == 'csv':
-        if not args.csv_path:
-            raise ValueError("Must provide --csv-path for csv data source")
-        print(f"\n📂 Loading data from {args.csv_path}...")
-        
-        # Load CSV
-        df = pd.read_csv(args.csv_path)
-        print(f"✅ Loaded {len(df)} samples from CSV")
-        missing = [col for col in BASE_FEATURES if col not in df.columns]
-        if missing:
-            raise ValueError(f"CSV is missing required base features: {missing}")
-        engineered = add_derived_features(df[BASE_FEATURES])
-        df = df.drop(columns=BASE_FEATURES, errors='ignore')
-        df = pd.concat([df, engineered], axis=1)
-        feature_cols = get_all_feature_columns(df)
-        X = df[feature_cols]
-        
-        # Extract disease labels
-        disease_cols = ['sepsis', 'kidney_failure', 'heart_disease', 'diabetes',
-                       'anemia', 'thalassemia', 'thrombocytopenia', 'mortality']
-        y_dict = {disease: df[disease].values for disease in disease_cols if disease in df.columns}
-        
-        print(f"✅ Features: {list(X.columns)}")
-        print(f"✅ Diseases: {list(y_dict.keys())}")
-        
-        for disease, y in y_dict.items():
-            print(f"   - {disease}: {y.sum()} positive ({y.mean():.1%})")
-    
+    # Load real dataset (no synthetic generation or formula-derived labels).
+    if args.data_source == 'csv':
+        data_path = args.csv_path or 'mimic_training_data.csv'
     else:
-        raise ValueError(f"Unknown data source: {args.data_source}")
+        data_path = args.csv_path or 'mimic_training_data.csv'
+
+    print(f"\n📂 Loading data from {data_path}...")
+
+    # Load CSV with pre-existing labels.
+    df = pd.read_csv(data_path)
+    print(f"✅ Loaded {len(df)} samples from CSV")
+
+    missing = [col for col in BASE_FEATURES if col not in df.columns]
+    if missing:
+        raise ValueError(f"CSV is missing required base features: {missing}")
+
+    X = df[BASE_FEATURES].copy()
+
+    # Use dataset-provided disease labels only.
+    disease_cols = ['sepsis', 'kidney_failure', 'heart_disease', 'diabetes',
+                    'anemia', 'thalassemia', 'thrombocytopenia', 'mortality']
+    missing_disease_cols = [c for c in disease_cols if c not in df.columns]
+    if missing_disease_cols:
+        raise ValueError(
+            f"CSV is missing required disease label columns: {missing_disease_cols}"
+        )
+
+    y_dict = {disease: df[disease].astype(int).values for disease in disease_cols}
+
+    print(f"✅ Features: {list(X.columns)}")
+    print(f"✅ Diseases: {list(y_dict.keys())}")
+
+    for disease, y in y_dict.items():
+        print(f"   - {disease}: {y.sum()} positive ({y.mean():.1%})")
     
     # Train models
     print("\n🎯 Starting model training...")

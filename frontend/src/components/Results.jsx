@@ -17,6 +17,18 @@ function Results({ data }) {
 
   const formatPercent = (value) => `${(value * 100).toFixed(1)}%`;
 
+  const getScoreColor = (category) => {
+    switch (category) {
+      case 'CRITICAL':
+        return 'var(--danger)';
+      case 'HIGH':
+      case 'MODERATE':
+        return 'var(--warning)';
+      default:
+        return 'var(--secondary)';
+    }
+  };
+
   const renderFusionSummary = () => {
     const summary = data.multimodal_summary;
     if (!summary) {
@@ -57,16 +69,16 @@ function Results({ data }) {
                   <td>
                     {fused.imaging_signal !== null && fused.imaging_signal !== undefined
                       ? formatPercent(fused.imaging_signal)
-                      : '—'}
+                      : '--'}
                   </td>
                   <td>
                     {fused.severity_modifier !== null && fused.severity_modifier !== undefined
                       ? formatPercent(fused.severity_modifier)
-                      : '—'}
+                      : '--'}
                   </td>
                   <td>{formatPercent(fused.fused_score)}</td>
                   <td>{formatPercent(fused.agreement_index)}</td>
-                  <td>{fused.governance_flag || '—'}</td>
+                  <td>{fused.governance_flag || '--'}</td>
                 </tr>
               ))}
             </tbody>
@@ -136,15 +148,7 @@ function Results({ data }) {
             </div>
             <div
               className="result-score"
-              style={{
-                color: `var(--${
-                  getRiskColor(pred.risk_category) === 'low'
-                    ? 'secondary'
-                    : getRiskColor(pred.risk_category) === 'critical'
-                    ? 'danger'
-                    : 'warning'
-                })`,
-              }}
+              style={{ color: getScoreColor(pred.risk_category) }}
             >
               {(pred.risk_score * 100).toFixed(1)}%
             </div>

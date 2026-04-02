@@ -40,7 +40,11 @@ async def connect_to_mongodb():
             server_api=ServerApi('1'),
             maxPoolSize=10,
             minPoolSize=1,
-            serverSelectionTimeoutMS=5000
+            serverSelectionTimeoutMS=5000,
+            tlsAllowInvalidCertificates=True,
+            ssl=True,
+            retryWrites=False,
+            connectTimeoutMS=30000
         )
         
         # Test connection
@@ -92,19 +96,27 @@ async def create_indexes():
 
 def get_database():
     """Get database instance."""
+    if database is None:
+        raise RuntimeError("MongoDB connection not available")
     return database
 
 
 def get_users_collection():
     """Get users collection."""
+    if database is None:
+        raise RuntimeError("MongoDB connection not available")
     return database.users
 
 
 def get_predictions_collection():
     """Get predictions collection."""
+    if database is None:
+        raise RuntimeError("MongoDB connection not available")
     return database.predictions
 
 
 def get_sessions_collection():
     """Get sessions collection."""
+    if database is None:
+        raise RuntimeError("MongoDB connection not available")
     return database.sessions

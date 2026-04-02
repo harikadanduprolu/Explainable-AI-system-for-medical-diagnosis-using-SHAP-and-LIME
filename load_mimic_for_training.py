@@ -27,12 +27,17 @@ import warnings
 from sklearn.model_selection import StratifiedShuffleSplit
 
 from feature_engineering import BASE_FEATURES, add_derived_features, get_all_feature_columns
+from dataset.path_config import (
+    detect_mimic_iv_path,
+    detect_mimic_cxr_metadata,
+    detect_mimic_cxr_labels,
+)
 
 warnings.filterwarnings('ignore')
 
-DEFAULT_MIMIC_IV_PATH = Path("dataset/mimic4")
-DEFAULT_CXR_METADATA_PATH = Path("dataset/mimic-cxr/mimic-cxr-2.0.0-metadata.csv.gz")
-DEFAULT_CXR_LABELS_PATH = Path("dataset/mimic-cxr/mimic-cxr-jpg-2.1.0-chexpert.csv.gz")
+DEFAULT_MIMIC_IV_PATH = detect_mimic_iv_path()
+DEFAULT_CXR_METADATA_PATH = detect_mimic_cxr_metadata()
+DEFAULT_CXR_LABELS_PATH = detect_mimic_cxr_labels()
 
 
 def _read_local_csv(path: Path) -> pd.DataFrame:
@@ -730,10 +735,10 @@ def main():
     parser.add_argument(
         '--mimic-path',
         type=str,
-        default=str(DEFAULT_MIMIC_IV_PATH) if DEFAULT_MIMIC_IV_PATH.exists() else None,
+        default=str(DEFAULT_MIMIC_IV_PATH) if DEFAULT_MIMIC_IV_PATH else None,
         help=(
             "Path to MIMIC-IV v3.1 dataset (should contain 'hosp' and 'icu' subdirectories). "
-            "Defaults to dataset/mimic4 when it exists."
+            "Defaults to the detected dataset/mimic4 directory (or env:MIMIC_IV_PATH) when available."
         )
     )
     parser.add_argument(
@@ -754,13 +759,13 @@ def main():
     parser.add_argument(
         '--cxr-metadata',
         type=str,
-        default=str(DEFAULT_CXR_METADATA_PATH) if DEFAULT_CXR_METADATA_PATH.exists() else None,
+        default=str(DEFAULT_CXR_METADATA_PATH) if DEFAULT_CXR_METADATA_PATH else None,
         help="Path to mimic-cxr metadata CSV (must contain HADM_ID, STUDY_ID, DICOM_ID)"
     )
     parser.add_argument(
         '--cxr-labels',
         type=str,
-        default=str(DEFAULT_CXR_LABELS_PATH) if DEFAULT_CXR_LABELS_PATH.exists() else None,
+        default=str(DEFAULT_CXR_LABELS_PATH) if DEFAULT_CXR_LABELS_PATH else None,
         help="Path to CheXpert label CSV (mimic-cxr-jpg-2.1.0-chexpert.csv.gz)"
     )
     parser.add_argument(
@@ -810,7 +815,7 @@ def main():
     else:
         # Check if path exists
         if not args.mimic_path:
-            print("❌ MIMIC path not provided and default dataset/mimic4 was not found.")
+            print("❌ Could not auto-detect a local MIMIC-IV directory (checked env:MIMIC_IV_PATH, dataset/mimic4, and mimic_dataset_path.txt).")
             print("\n💡 Options:")
             print("   1. Place the PhysioNet download under dataset/mimic4 (with hosp/ and icu/ folders).")
             print("   2. Provide an explicit path: python load_mimic_for_training.py --mimic-path /path/to/mimic-iv-v3.1")

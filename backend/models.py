@@ -12,7 +12,7 @@ from bson import ObjectId
 
 
 class PyObjectId(ObjectId):
-    """Custom ObjectId type for Pydantic."""
+    """Custom ObjectId type for Pydantic v2."""
     
     @classmethod
     def __get_validators__(cls):
@@ -25,8 +25,11 @@ class PyObjectId(ObjectId):
         return ObjectId(v)
     
     @classmethod
-    def __modify_schema__(cls, field_schema):
-        field_schema.update(type="string")
+    def __get_pydantic_json_schema__(cls, schema, handler):
+        json_schema = handler(schema)
+        json_schema = handler.resolve_ref_schema(json_schema)
+        json_schema['type'] = 'string'
+        return json_schema
 
 
 class UserSignup(BaseModel):
