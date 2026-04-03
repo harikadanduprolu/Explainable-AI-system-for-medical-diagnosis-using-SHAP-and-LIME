@@ -46,6 +46,20 @@ def _read_local_csv(path: Path) -> pd.DataFrame:
     return pd.read_csv(path)
 
 
+def _resolve_table_file(folder: Path, table_name: str) -> Optional[Path]:
+    """Resolve local MIMIC table file supporting csv/csv.gz and case variants."""
+    candidates = [
+        folder / f"{table_name}.csv",
+        folder / f"{table_name}.csv.gz",
+        folder / f"{table_name.upper()}.csv",
+        folder / f"{table_name.upper()}.csv.gz",
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return None
+
+
 def load_local_csv(path: Optional[str]) -> pd.DataFrame:
     if not path:
         return pd.DataFrame()
@@ -105,9 +119,13 @@ def attach_cxr_data(
     chexpert_map: Dict[str, int],
 ) -> pd.DataFrame:
     if metadata_df.empty:
-        raise RuntimeError(
-            "CXR metadata is required. Provide --cxr-metadata pointing to the MIMIC-CXR metadata CSV."
-        )
+        enriched = dataset.copy()
+        enriched["DICOM_ID"] = ""
+        enriched["CXR_STUDY_ID"] = np.nan
+        enriched["CXR_IMAGE_PATH"] = ""
+        enriched["CXR_LABEL"] = np.nan
+        print("⚠️  CXR metadata not provided; continuing with clinical-only dataset.")
+        return enriched
     dedup = metadata_df.drop_duplicates("HADM_ID")
     columns = ["HADM_ID", "DICOM_ID", "STUDY_ID"]
     image_col = None
@@ -125,10 +143,16 @@ def attach_cxr_data(
     if chexpert_map:
         merged["CXR_LABEL"] = merged["DICOM_ID"].map(chexpert_map)
         merged = merged.dropna(subset=["CXR_LABEL"])
+    else:
+        merged["CXR_LABEL"] = np.nan
     if merged.empty:
-        raise RuntimeError(
-            "No overlapping admissions between MIMIC-IV dataset and provided CXR metadata/labels."
-        )
+        enriched = dataset.copy()
+        enriched["DICOM_ID"] = ""
+        enriched["CXR_STUDY_ID"] = np.nan
+        enriched["CXR_IMAGE_PATH"] = ""
+        enriched["CXR_LABEL"] = np.nan
+        print("⚠️  No overlap with CXR metadata/labels; continuing with clinical-only dataset.")
+        return enriched
     return merged
 
 
@@ -139,6 +163,16 @@ def apply_stratified_splits(
 ) -> pd.DataFrame:
     dataset = dataset.copy()
     dataset["split"] = "train"
+    if dataset.empty:
+        return dataset
+    if not disease_cols:
+        n = len(dataset)
+        train_end = int(0.7 * n)
+        val_end = train_end + int(0.15 * n)
+        dataset.iloc[train_end:val_end, dataset.columns.get_loc("split")] = "val"
+        dataset.iloc[val_end:, dataset.columns.get_loc("split")] = "test"
+        return dataset
+
     signature = dataset[disease_cols].astype(str).agg("".join, axis=1)
     if signature.nunique() <= 1:
         n = len(dataset)
@@ -153,17 +187,26 @@ def apply_stratified_splits(
         test_size=0.30,
         random_state=seed,
     )
-    train_idx, temp_idx = next(splitter.split(dataset, signature))
-    temp_signature = signature.iloc[temp_idx]
-    temp_indices = dataset.index[temp_idx]
-    temp_splitter = StratifiedShuffleSplit(
-        n_splits=1,
-        test_size=0.50,
-        random_state=seed,
-    )
-    val_idx, test_idx = next(temp_splitter.split(temp_signature, temp_signature))
-    dataset.loc[temp_indices[val_idx], "split"] = "val"
-    dataset.loc[temp_indices[test_idx], "split"] = "test"
+    try:
+        train_idx, temp_idx = next(splitter.split(dataset, signature))
+        temp_signature = signature.iloc[temp_idx]
+        temp_indices = dataset.index[temp_idx]
+        temp_splitter = StratifiedShuffleSplit(
+            n_splits=1,
+            test_size=0.50,
+            random_state=seed,
+        )
+        val_idx, test_idx = next(temp_splitter.split(temp_signature, temp_signature))
+        dataset.loc[temp_indices[val_idx], "split"] = "val"
+        dataset.loc[temp_indices[test_idx], "split"] = "test"
+    except ValueError:
+        # Fallback for tiny cohorts where one or more label signatures are too rare.
+        shuffled_idx = dataset.sample(frac=1.0, random_state=seed).index
+        n = len(dataset)
+        train_end = int(0.7 * n)
+        val_end = train_end + int(0.15 * n)
+        dataset.loc[shuffled_idx[train_end:val_end], "split"] = "val"
+        dataset.loc[shuffled_idx[val_end:], "split"] = "test"
     return dataset
 
 
@@ -283,6 +326,8 @@ class MIMICDataLoader:
             self.patients_df.columns = self.patients_df.columns.str.upper()
             self.admissions_df.columns = self.admissions_df.columns.str.upper()
             self.icustays_df.columns = self.icustays_df.columns.str.upper()
+            if 'STAY_ID' in self.icustays_df.columns and 'ICUSTAY_ID' not in self.icustays_df.columns:
+                self.icustays_df = self.icustays_df.rename(columns={'STAY_ID': 'ICUSTAY_ID'})
 
             print(f"✅ patients: {len(self.patients_df):,} records")
             print(f"✅ admissions: {len(self.admissions_df):,} records")
@@ -301,35 +346,32 @@ class MIMICDataLoader:
         
         # MIMIC-IV v3.1 uses lowercase filenames in the hosp module
         files_to_load = {
-            'patients_df': 'patients.csv',
-            'admissions_df': 'admissions.csv',
+            'patients_df': 'patients',
+            'admissions_df': 'admissions',
         }
         
-        for attr_name, filename in files_to_load.items():
-            file_path = hosp_path / filename
-            if not file_path.exists():
-                # Try uppercase version
-                file_path = hosp_path / filename.upper()
+        for attr_name, table_name in files_to_load.items():
+            file_path = _resolve_table_file(hosp_path, table_name)
             
-            if file_path.exists():
-                df = pd.read_csv(file_path)
+            if file_path is not None:
+                df = _read_local_csv(file_path)
                 # Normalize to uppercase columns for consistency
                 df.columns = df.columns.str.upper()
                 setattr(self, attr_name, df)
-                print(f"✅ {filename}: {len(df):,} records")
+                print(f"✅ {file_path.name}: {len(df):,} records")
             else:
-                print(f"⚠️  {filename} not found at {file_path}")
+                print(f"⚠️  {table_name}.csv(.gz) not found under {hosp_path}")
         
         # Load ICU stays from icu module
         icu_path = self.mimic_path / "icu"
-        icustays_file = icu_path / "icustays.csv"
-        if not icustays_file.exists():
-            icustays_file = icu_path / "ICUSTAYS.csv"
+        icustays_file = _resolve_table_file(icu_path, "icustays")
         
-        if icustays_file.exists():
-            self.icustays_df = pd.read_csv(icustays_file)
+        if icustays_file is not None:
+            self.icustays_df = _read_local_csv(icustays_file)
             self.icustays_df.columns = self.icustays_df.columns.str.upper()
-            print(f"✅ ICU Stays: {len(self.icustays_df):,} records")
+            if 'STAY_ID' in self.icustays_df.columns and 'ICUSTAY_ID' not in self.icustays_df.columns:
+                self.icustays_df = self.icustays_df.rename(columns={'STAY_ID': 'ICUSTAY_ID'})
+            print(f"✅ {icustays_file.name}: {len(self.icustays_df):,} records")
         else:
             print("⚠️  ICU stays file not found")
 
@@ -374,13 +416,10 @@ class MIMICDataLoader:
                 return pd.DataFrame()
         
         hosp_path = self.mimic_path / "hosp"
-        diagnoses_file = hosp_path / "diagnoses_icd.csv"
-        
-        if not diagnoses_file.exists():
-            diagnoses_file = hosp_path / "DIAGNOSES_ICD.csv"
-        
-        if diagnoses_file.exists():
-            diagnoses_df = pd.read_csv(diagnoses_file)
+        diagnoses_file = _resolve_table_file(hosp_path, "diagnoses_icd")
+
+        if diagnoses_file is not None:
+            diagnoses_df = _read_local_csv(diagnoses_file)
             diagnoses_df.columns = diagnoses_df.columns.str.upper()
             print(f"✅ Diagnoses: {len(diagnoses_df):,} records (ICD-10)")
             return diagnoses_df
@@ -442,15 +481,10 @@ class MIMICDataLoader:
             try:
                 icu_path = self.mimic_path / "icu"
                 hosp_path = self.mimic_path / "hosp"
-                chartevents_file = icu_path / "chartevents.csv"
-                if not chartevents_file.exists():
-                    chartevents_file = icu_path / "CHARTEVENTS.csv"
+                chartevents_file = _resolve_table_file(icu_path, "chartevents")
+                labevents_file = _resolve_table_file(hosp_path, "labevents")
 
-                labevents_file = hosp_path / "labevents.csv"
-                if not labevents_file.exists():
-                    labevents_file = hosp_path / "LABEVENTS.csv"
-
-                if chartevents_file.exists():
+                if chartevents_file is not None:
                     chunks = []
                     for chunk in pd.read_csv(
                         chartevents_file,
@@ -471,7 +505,7 @@ class MIMICDataLoader:
                         vitals_events = pd.concat(chunks, ignore_index=True)
                         vitals_events = vitals_events.rename(columns={'STAY_ID': 'ICUSTAY_ID'})
 
-                if labevents_file.exists():
+                if labevents_file is not None:
                     chunks = []
                     for chunk in pd.read_csv(
                         labevents_file,
@@ -521,6 +555,9 @@ class MIMICDataLoader:
         
         # Filter diagnoses for our admissions
         diagnoses_df = diagnoses_df[diagnoses_df['HADM_ID'].isin(hadm_ids)].copy()
+
+        # Start from all admissions so missing diagnoses still receive zero labels.
+        base_labels = pd.DataFrame({'HADM_ID': pd.Series(hadm_ids, dtype='int64')}).drop_duplicates()
         
         # Initialize disease columns
         for disease in DISEASE_ICD10_CODES.keys():
@@ -535,7 +572,15 @@ class MIMICDataLoader:
                 diagnoses_df.loc[mask, disease] = 1
         
         # Aggregate by admission (max value if multiple diagnoses)
-        disease_labels = diagnoses_df.groupby('HADM_ID')[list(DISEASE_ICD10_CODES.keys())].max().reset_index()
+        if diagnoses_df.empty:
+            disease_labels = base_labels.copy()
+            for disease in DISEASE_ICD10_CODES.keys():
+                disease_labels[disease] = 0
+        else:
+            grouped = diagnoses_df.groupby('HADM_ID')[list(DISEASE_ICD10_CODES.keys())].max().reset_index()
+            disease_labels = base_labels.merge(grouped, on='HADM_ID', how='left').fillna(0)
+            for disease in DISEASE_ICD10_CODES.keys():
+                disease_labels[disease] = disease_labels[disease].astype(int)
         
         # Add mortality label (from ADMISSIONS.hospital_expire_flag in MIMIC-IV)
         if 'HOSPITAL_EXPIRE_FLAG' in self.admissions_df.columns:
@@ -561,13 +606,13 @@ class MIMICDataLoader:
         self,
         icustays_df: pd.DataFrame,
         event_data: Dict[str, pd.DataFrame],
-        max_patients: int = 5000
+        max_patients: Optional[int] = None
     ) -> pd.DataFrame:
         """Build feature matrix using MIMIC hierarchy: subject_id -> hadm_id -> stay_id."""
         print(f"\n⏳ Building feature matrix for {len(icustays_df)} ICU stays...")
         
-        # Sample if too many
-        if len(icustays_df) > max_patients:
+        # Sample only when an explicit cap is provided.
+        if max_patients is not None and len(icustays_df) > max_patients:
             print(f"   Sampling {max_patients} of {len(icustays_df)} stays...")
             icustays_df = icustays_df.sample(n=max_patients, random_state=42)
         
@@ -651,7 +696,7 @@ class MIMICDataLoader:
     
     def create_training_dataset(
         self,
-        max_patients: int = 5000,
+        max_patients: Optional[int] = None,
         output_file: str = None,
         cxr_metadata: Optional[str] = None,
         cxr_labels: Optional[str] = None,
@@ -673,11 +718,16 @@ class MIMICDataLoader:
         if self.icustays_df.empty:
             raise RuntimeError("ICU stays table is empty. Cannot build training dataset.")
         
-        # Get ICU stays
-        icustays = self.icustays_df.sample(
-            n=min(max_patients, len(self.icustays_df)),
-            random_state=42
-        ).copy()
+        # Get ICU stays. By default, use all available MIMIC-IV mini stays.
+        if max_patients is None:
+            icustays = self.icustays_df.copy()
+            print(f"📌 Using all {len(icustays):,} ICU stays from the dataset")
+        else:
+            icustays = self.icustays_df.sample(
+                n=min(max_patients, len(self.icustays_df)),
+                random_state=42
+            ).copy()
+            print(f"📌 Using a capped sample of {len(icustays):,} ICU stays")
         
         # Extract diagnoses
         diagnoses_df = self.extract_diagnoses()

@@ -1,203 +1,28 @@
 """
 Advanced Training Pipeline - Maximum Accuracy
 ==============================================
-Uses advanced techniques for maximum model accuracy:
-- Large-scale synthetic data generation (10,000+ samples)
-- Advanced feature engineering with domain knowledge
-- Deep learning (Neural Networks)
-- Aggressive hyperparameter tuning
-- Data augmentation
-- Cross-validation
+Trains advanced models using real MIMIC-IV mini data.
+
+Default behavior:
+- Load raw MIMIC-IV mini tables from dataset/mimic4_mini/...
+- Build a supervised training CSV using load_mimic_for_training.py logic
+- Train advanced models with feature engineering and model selection
 """
 
 import pandas as pd
 import numpy as np
 from pathlib import Path
 import joblib
-from sklearn.model_selection import train_test_split, GridSearchCV, StratifiedKFold
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import roc_auc_score, accuracy_score, f1_score, classification_report
+from sklearn.metrics import roc_auc_score, accuracy_score, f1_score
 from sklearn.neural_network import MLPClassifier
 import xgboost as xgb
 import warnings
+
+from load_mimic_for_training import MIMICDataLoader
+
 warnings.filterwarnings('ignore')
-
-
-class AdvancedDataGenerator:
-    """Generate high-quality synthetic clinical data with realistic correlations."""
-    
-    @staticmethod
-    def generate_realistic_data(n_samples=10000, random_state=42):
-        """Generate highly realistic clinical data with strong disease correlations."""
-        np.random.seed(random_state)
-        
-        # Base demographics
-        age = np.random.gamma(shape=8, scale=8, size=n_samples).clip(18, 95)
-        gender = np.random.choice([0, 1], n_samples)
-        
-        # Disease risk factors (latent variables)
-        sepsis_risk_latent = np.random.normal(0, 1, n_samples)
-        kidney_risk_latent = np.random.normal(0, 1, n_samples)
-        cardiac_risk_latent = np.random.normal(0, 1, n_samples)
-        metabolic_risk_latent = np.random.normal(0, 1, n_samples)
-        
-        # Age-dependent risk
-        age_risk = (age - 40) / 50
-        
-        # Generate correlated vitals based on underlying pathology
-        # Sepsis patients: high HR, fever, abnormal WBC, high lactate
-        hr_base = 75 + 15 * age_risk
-        heart_rate = hr_base + 25 * sepsis_risk_latent + 10 * cardiac_risk_latent
-        heart_rate = heart_rate.clip(40, 180)
-        
-        sbp_base = 120 + 20 * age_risk
-        systolic_bp = sbp_base + 15 * cardiac_risk_latent - 10 * sepsis_risk_latent
-        systolic_bp = systolic_bp.clip(70, 200)
-        
-        dbp_base = 75 + 10 * age_risk
-        diastolic_bp = dbp_base + 8 * cardiac_risk_latent - 5 * sepsis_risk_latent
-        diastolic_bp = diastolic_bp.clip(40, 120)
-        
-        temp_base = 98.6
-        temperature = temp_base + 1.5 * sepsis_risk_latent + 0.3 * np.random.normal(0, 0.8, n_samples)
-        temperature = temperature.clip(95, 106)
-        
-        rr_base = 16 + 2 * age_risk
-        respiratory_rate = rr_base + 5 * sepsis_risk_latent + 3 * cardiac_risk_latent
-        respiratory_rate = respiratory_rate.clip(8, 40)
-        
-        # Labs with strong disease correlations
-        wbc_base = np.random.lognormal(2.2, 0.3, n_samples)
-        wbc_count = wbc_base * (1 + 0.8 * (sepsis_risk_latent > 0))
-        wbc_count = wbc_count.clip(1, 40)
-        
-        hgb_base = np.random.normal(13, 1.5, n_samples)
-        hemoglobin = hgb_base - 2.5 * (metabolic_risk_latent > 0.5) - 1.5 * (kidney_risk_latent > 0)
-        hemoglobin = hemoglobin.clip(5, 18)
-        
-        plt_base = np.random.normal(250, 70, n_samples)
-        platelet_count = plt_base - 80 * (sepsis_risk_latent > 1)
-        platelet_count = platelet_count.clip(20, 600)
-        
-        creat_base = np.random.lognormal(0.15, 0.4, n_samples)
-        creatinine = creat_base + 1.5 * np.maximum(0, kidney_risk_latent)
-        creatinine = creatinine.clip(0.3, 12)
-        
-        bun_base = np.random.normal(18, 8, n_samples)
-        bun = bun_base + 15 * np.maximum(0, kidney_risk_latent)
-        bun = bun.clip(5, 150)
-        
-        glucose_base = np.random.normal(100, 25, n_samples)
-        glucose = glucose_base + 80 * np.maximum(0, metabolic_risk_latent)
-        glucose = glucose.clip(50, 600)
-        
-        lactate_base = np.random.lognormal(0.4, 0.4, n_samples)
-        lactate = lactate_base + 3 * np.maximum(0, sepsis_risk_latent)
-        lactate = lactate.clip(0.5, 20)
-        
-        # Create DataFrame
-        df = pd.DataFrame({
-            'age': age,
-            'gender': gender,
-            'heart_rate': heart_rate,
-            'systolic_bp': systolic_bp,
-            'diastolic_bp': diastolic_bp,
-            'temperature': temperature,
-            'respiratory_rate': respiratory_rate,
-            'wbc_count': wbc_count,
-            'hemoglobin': hemoglobin,
-            'platelet_count': platelet_count,
-            'creatinine': creatinine,
-            'bun': bun,
-            'glucose': glucose,
-            'lactate': lactate
-        })
-        
-        # Generate disease labels with strong correlations
-        diseases = {}
-        
-        # Sepsis: fever + high WBC + high lactate + tachycardia
-        sepsis_score = (
-            0.05 +
-            0.25 * (np.abs(temperature - 98.6) > 1.5).astype(int) +
-            0.25 * (wbc_count > 12).astype(int) +
-            0.25 * (lactate > 2).astype(int) +
-            0.15 * (heart_rate > 100).astype(int) +
-            0.10 * (sepsis_risk_latent > 0).astype(int)
-        )
-        diseases['sepsis'] = (np.random.random(n_samples) < sepsis_score).astype(int)
-        
-        # Kidney failure: high creat + high BUN
-        kidney_score = (
-            0.08 +
-            0.40 * (creatinine > 1.5).astype(int) +
-            0.35 * (bun > 25).astype(int) +
-            0.25 * (kidney_risk_latent > 0).astype(int)
-        )
-        diseases['kidney_failure'] = (np.random.random(n_samples) < kidney_score).astype(int)
-        
-        # Heart disease: age + BP + cardiac risk
-        heart_score = (
-            0.05 +
-            0.30 * (age > 60).astype(int) +
-            0.30 * (systolic_bp > 140).astype(int) +
-            0.25 * (cardiac_risk_latent > 0).astype(int) +
-            0.15 * gender  # Males higher risk
-        )
-        diseases['heart_disease'] = (np.random.random(n_samples) < heart_score).astype(int)
-        
-        # Diabetes: high glucose + age + metabolic risk
-        diabetes_score = (
-            0.05 +
-            0.50 * (glucose > 140).astype(int) +
-            0.25 * (age > 45).astype(int) +
-            0.20 * (metabolic_risk_latent > 0).astype(int)
-        )
-        diseases['diabetes'] = (np.random.random(n_samples) < diabetes_score).astype(int)
-        
-        # Anemia: low hemoglobin
-        anemia_score = (
-            0.08 +
-            0.60 * (hemoglobin < 11).astype(int) +
-            0.30 * (age > 65).astype(int) +
-            0.10 * (1 - gender)  # Females higher risk
-        )
-        diseases['anemia'] = (np.random.random(n_samples) < anemia_score).astype(int)
-        
-        # Thalassemia: low hemoglobin + low platelets (genetic)
-        thalassemia_score = (
-            0.03 +
-            0.45 * (hemoglobin < 10).astype(int) +
-            0.35 * (platelet_count < 150).astype(int) +
-            0.20 * (age < 40).astype(int)  # Earlier onset
-        )
-        diseases['thalassemia'] = (np.random.random(n_samples) < thalassemia_score).astype(int)
-        
-        # Thrombocytopenia: low platelets
-        thrombo_score = (
-            0.05 +
-            0.70 * (platelet_count < 150).astype(int) +
-            0.30 * diseases['sepsis']
-        )
-        diseases['thrombocytopenia'] = (np.random.random(n_samples) < thrombo_score).astype(int)
-        
-        # Mortality: combination of all severe factors
-        mortality_score = (
-            0.02 +
-            0.15 * (age > 75).astype(int) +
-            0.20 * diseases['sepsis'] +
-            0.20 * diseases['kidney_failure'] +
-            0.15 * diseases['heart_disease'] +
-            0.15 * (lactate > 4).astype(int) +
-            0.15 * (systolic_bp < 90).astype(int)
-        )
-        diseases['mortality'] = (np.random.random(n_samples) < mortality_score).astype(int)
-        
-        # Add disease labels to dataframe
-        for disease, labels in diseases.items():
-            df[disease] = labels
-        
-        return df
 
 
 class AdvancedFeatureEngineer:
@@ -386,11 +211,58 @@ class AdvancedModelTrainer:
         return bundle['metrics']
 
 
+DEFAULT_MIMIC4_MINI_PATH = Path("dataset/mimic4_mini/physionet.org/files/mimiciv/3.1")
+
+
+def load_dataset_from_mimic4_mini(
+    mimic_path: Path,
+    output_csv: Path,
+    max_patients: int = None,
+) -> pd.DataFrame:
+    """Build a supervised training dataset from local MIMIC-IV mini files."""
+    if not mimic_path.exists():
+        raise FileNotFoundError(
+            f"MIMIC-IV mini path not found: {mimic_path}. "
+            "Provide --mimic-mini-path with a directory containing hosp/ and icu/."
+        )
+
+    print(f"\n📂 Building dataset from MIMIC-IV mini at: {mimic_path}")
+    loader = MIMICDataLoader(str(mimic_path))
+    dataset = loader.create_training_dataset(
+        max_patients=max_patients,
+        output_file=str(output_csv),
+    )
+    print(f"✅ Built dataset with {len(dataset)} rows")
+    return dataset
+
+
 def main():
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--n-samples', type=int, default=10000, help='Number of samples to generate')
-    parser.add_argument('--data-path', type=str, default=None, help='Path to CSV data (if provided, skip generation)')
+    parser.add_argument(
+        '--data-path',
+        type=str,
+        default=None,
+        help='Optional prebuilt CSV path. If omitted, dataset is built from --mimic-mini-path.',
+    )
+    parser.add_argument(
+        '--mimic-mini-path',
+        type=str,
+        default=str(DEFAULT_MIMIC4_MINI_PATH),
+        help='Path to local MIMIC-IV mini folder containing hosp/ and icu/.',
+    )
+    parser.add_argument(
+        '--prepared-output',
+        type=str,
+        default='mimic4_mini_training_data.csv',
+        help='CSV file path to write extracted MIMIC-IV mini training data.',
+    )
+    parser.add_argument(
+        '--max-patients',
+        type=int,
+        default=None,
+        help='Optional maximum ICU stays to sample while building dataset from MIMIC-IV mini. If omitted, use all available data.',
+    )
     args = parser.parse_args()
     
     print("="*60)
@@ -402,10 +274,11 @@ def main():
         df = pd.read_csv(args.data_path)
         print(f"✅ Loaded {len(df)} samples from file")
     else:
-        # Generate large realistic dataset
-        print(f"\n📊 Generating {args.n_samples:,} high-quality synthetic samples...")
-        df = AdvancedDataGenerator.generate_realistic_data(n_samples=args.n_samples)
-        print(f"✅ Generated {len(df)} samples")
+        df = load_dataset_from_mimic4_mini(
+            mimic_path=Path(args.mimic_mini_path),
+            output_csv=Path(args.prepared_output),
+            max_patients=args.max_patients,
+        )
     
     # Feature engineering
     print("\n🔧 Advanced feature engineering...")
