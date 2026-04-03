@@ -125,7 +125,10 @@ function PredictionApp() {
         )}
 
         {activeTab === 'whatif' && currentPatient && (
-          <WhatIfAnalysis baselinePatient={currentPatient} />
+          <WhatIfAnalysis
+            baselinePatient={currentPatient}
+            availableDiseases={(predictions?.predictions || []).map((p) => p.disease)}
+          />
         )}
 
         {activeTab === 'samples' && (

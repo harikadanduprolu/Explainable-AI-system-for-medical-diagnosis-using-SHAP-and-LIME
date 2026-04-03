@@ -32,19 +32,19 @@ const ClinicalDashboard = () => {
 
   const samplePatients = [
     {
-      name: "Healthy Patient",
+      name: "Preset: Healthy Patient",
       data: { age: 45, gender: 0, heart_rate: 72, systolic_bp: 120, diastolic_bp: 80, temperature: 98.6, respiratory_rate: 16, wbc_count: 7.5, hemoglobin: 14.0, platelet_count: 250, creatinine: 1.0, bun: 15, glucose: 95, lactate: 1.2 }
     },
     {
-      name: "High Sepsis Risk",
+      name: "Preset: High Sepsis Risk",
       data: { age: 68, gender: 1, heart_rate: 115, systolic_bp: 95, diastolic_bp: 65, temperature: 101.5, respiratory_rate: 24, wbc_count: 16.5, hemoglobin: 10.5, platelet_count: 150, creatinine: 2.1, bun: 40, glucose: 180, lactate: 3.2 }
     },
     {
-      name: "Kidney Failure Risk",
+      name: "Preset: Kidney Failure Risk",
       data: { age: 72, gender: 1, heart_rate: 88, systolic_bp: 135, diastolic_bp: 85, temperature: 98.4, respiratory_rate: 18, wbc_count: 8.2, hemoglobin: 9.5, platelet_count: 220, creatinine: 4.5, bun: 85, glucose: 110, lactate: 1.8 }
     },
     {
-      name: "Diabetes Risk",
+      name: "Preset: Diabetes Risk",
       data: { age: 55, gender: 0, heart_rate: 82, systolic_bp: 140, diastolic_bp: 90, temperature: 98.7, respiratory_rate: 17, wbc_count: 7.8, hemoglobin: 12.5, platelet_count: 280, creatinine: 1.2, bun: 18, glucose: 325, lactate: 1.5 }
     }
   ];
@@ -122,14 +122,14 @@ const ClinicalDashboard = () => {
   };
 
   const getRiskClass = (category) => {
-    if (category === 'High Risk') return 'high-risk';
-    if (category === 'Medium Risk') return 'medium-risk';
+    if (category === 'CRITICAL' || category === 'HIGH') return 'high-risk';
+    if (category === 'MODERATE') return 'medium-risk';
     return 'low-risk';
   };
 
   const getRiskColor = (category) => {
-    if (category === 'High Risk') return '#dc3545';
-    if (category === 'Medium Risk') return '#ffc107';
+    if (category === 'CRITICAL' || category === 'HIGH') return '#dc3545';
+    if (category === 'MODERATE') return '#ffc107';
     return '#28a745';
   };
 

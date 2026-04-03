@@ -1,11 +1,145 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
-function WhatIfAnalysis({ baselinePatient }) {
+const FEATURE_GUIDANCE = {
+  temperature: {
+    increase: 'Higher temperature is often associated with stronger inflammatory/infectious burden, which can raise sepsis-related risk.',
+    decrease: 'Lowering fever may reduce physiologic stress and can improve risk when infection control is in progress.',
+    actions: 'Review infection source control, antipyretic strategy, and serial lactate/WBC trends.'
+  },
+  heart_rate: {
+    increase: 'Rising heart rate can signal hemodynamic stress, pain, hypovolemia, or worsening systemic illness.',
+    decrease: 'Reducing tachycardia may indicate improved perfusion, volume status, or symptom control.',
+    actions: 'Reassess volume status, pain/anxiety drivers, oxygenation, and rhythm abnormalities.'
+  },
+  lactate: {
+    increase: 'Higher lactate generally reflects worse tissue hypoperfusion and often increases acute risk estimates.',
+    decrease: 'Lactate clearance is typically favorable and may reduce short-term deterioration risk.',
+    actions: 'Track lactate clearance trajectory, optimize perfusion, and escalate if persistent elevation remains.'
+  },
+  wbc_count: {
+    increase: 'WBC elevation can suggest active inflammation/infection and may shift risk upward.',
+    decrease: 'Normalization can indicate improving inflammatory response and treatment effect.',
+    actions: 'Correlate with infection markers, culture results, and current antimicrobial strategy.'
+  },
+  creatinine: {
+    increase: 'Rising creatinine indicates worsening renal function and may increase kidney/mortality risk.',
+    decrease: 'Creatinine improvement is usually favorable for renal and global risk profiles.',
+    actions: 'Review nephrotoxic exposures, fluid balance, urine output, and renal support thresholds.'
+  },
+  glucose: {
+    increase: 'Hyperglycemia is linked to stress physiology and can worsen outcomes in high-risk patients.',
+    decrease: 'Better glycemic control may improve metabolic stability and reduce risk contribution.',
+    actions: 'Use protocolized glucose management and monitor for overcorrection/hypoglycemia.'
+  },
+  systolic_bp: {
+    increase: 'Improved systolic pressure may indicate better perfusion support in hypotensive states.',
+    decrease: 'Dropping systolic pressure can indicate hemodynamic compromise and increased acute risk.',
+    actions: 'Check MAP/perfusion endpoints, vasopressor needs, and fluid responsiveness.'
+  }
+};
+
+const DISEASE_PRIORITIES = {
+  sepsis: ['lactate', 'temperature', 'wbc_count', 'systolic_bp', 'heart_rate', 'respiratory_rate'],
+  kidney_failure: ['creatinine', 'bun', 'systolic_bp', 'lactate'],
+  heart_disease: ['systolic_bp', 'heart_rate', 'glucose', 'creatinine'],
+  diabetes: ['glucose', 'systolic_bp', 'creatinine'],
+  anemia: ['hemoglobin', 'platelet_count', 'creatinine'],
+  thalassemia: ['hemoglobin', 'platelet_count'],
+  thrombocytopenia: ['platelet_count', 'hemoglobin'],
+  cardiovascular: ['systolic_bp', 'heart_rate', 'glucose', 'lactate'],
+  mortality: ['lactate', 'systolic_bp', 'creatinine', 'heart_rate', 'respiratory_rate'],
+};
+
+const TARGET_RANGES = {
+  temperature: { low: 97.0, high: 99.0 },
+  heart_rate: { low: 60.0, high: 100.0 },
+  systolic_bp: { low: 100.0, high: 140.0 },
+  respiratory_rate: { low: 12.0, high: 20.0 },
+  wbc_count: { low: 4.0, high: 11.0 },
+  hemoglobin: { low: 12.0, high: 16.0 },
+  platelet_count: { low: 150.0, high: 400.0 },
+  creatinine: { low: 0.6, high: 1.2 },
+  bun: { low: 7.0, high: 20.0 },
+  glucose: { low: 70.0, high: 140.0 },
+  lactate: { low: 0.8, high: 2.0 },
+};
+
+const FEATURE_ACTIONS = {
+  anemia: {
+    hemoglobin: 'Increase hemoglobin and evaluate iron stores/supplementation plan.',
+    platelet_count: 'Support marrow/hemostatic stability and reassess bleeding risk.',
+  },
+  sepsis: {
+    lactate: 'Improve perfusion and monitor lactate clearance.',
+    temperature: 'Control infection burden and fever trajectory.',
+    wbc_count: 'Reassess inflammatory response and antimicrobial strategy.',
+  },
+  kidney_failure: {
+    creatinine: 'Reduce kidney stress and avoid nephrotoxic exposure.',
+    bun: 'Optimize renal support and monitor uremic burden.',
+  },
+};
+
+const makeTargetValue = (feature, currentValue) => {
+  const range = TARGET_RANGES[feature];
+  if (!range) return currentValue;
+  if (currentValue < range.low) return range.low;
+  if (currentValue > range.high) return range.high;
+  return currentValue;
+};
+
+const buildCounterfactualPlan = (disease, baselinePatient) => {
+  const priorities = DISEASE_PRIORITIES[disease] || [];
+  return priorities
+    .map((feature) => {
+      const currentValue = Number(baselinePatient?.[feature]);
+      if (Number.isNaN(currentValue)) {
+        return null;
+      }
+
+      const targetValue = makeTargetValue(feature, currentValue);
+      if (targetValue === currentValue) {
+        return null;
+      }
+
+      const direction = targetValue > currentValue ? 'Increase' : 'Decrease';
+      const action = FEATURE_ACTIONS[disease]?.[feature] || `Move ${feature.replace(/_/g, ' ')} toward a clinically preferred range.`;
+
+      return {
+        feature,
+        currentValue,
+        targetValue,
+        direction,
+        action,
+      };
+    })
+    .filter(Boolean)
+    .slice(0, 3);
+};
+
+function WhatIfAnalysis({ baselinePatient, availableDiseases = [] }) {
   const [selectedFeature, setSelectedFeature] = useState('temperature');
   const [newValue, setNewValue] = useState('');
-  const [selectedDisease, setSelectedDisease] = useState('sepsis');
+  const fallbackDiseases = [
+    'sepsis',
+    'kidney_failure',
+    'heart_disease',
+    'diabetes',
+    'anemia',
+    'thalassemia',
+    'thrombocytopenia',
+    'cardiovascular',
+    'mortality',
+  ];
+  const diseases = availableDiseases.length > 0 ? availableDiseases : fallbackDiseases;
+  const [selectedDisease, setSelectedDisease] = useState(diseases[0] || 'sepsis');
   const [whatIfResult, setWhatIfResult] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  const suggestedCounterfactuals = useMemo(
+    () => buildCounterfactualPlan(selectedDisease, baselinePatient),
+    [selectedDisease, baselinePatient]
+  );
 
   const features = [
     { key: 'temperature', label: 'Temperature (°F)' },
@@ -17,14 +151,20 @@ function WhatIfAnalysis({ baselinePatient }) {
     { key: 'systolic_bp', label: 'Systolic BP (mmHg)' },
   ];
 
-  const diseases = [
-    'sepsis',
-    'kidney_failure',
-    'heart_disease',
-    'diabetes',
-    'anemia',
-    'mortality',
-  ];
+  const baselineValue = Number(baselinePatient[selectedFeature]);
+  const proposedValue = newValue === '' ? null : Number(newValue);
+  const delta = proposedValue === null ? null : proposedValue - baselineValue;
+  const isIncrease = delta !== null && delta > 0;
+  const isDecrease = delta !== null && delta < 0;
+  const guidance = FEATURE_GUIDANCE[selectedFeature];
+
+  useEffect(() => {
+    const defaultSuggestion = suggestedCounterfactuals[0];
+    if (defaultSuggestion) {
+      setSelectedFeature(defaultSuggestion.feature);
+      setNewValue(String(defaultSuggestion.targetValue));
+    }
+  }, [selectedDisease, baselinePatient, suggestedCounterfactuals]);
 
   const handleAnalyze = async () => {
     if (!newValue) {
@@ -34,7 +174,7 @@ function WhatIfAnalysis({ baselinePatient }) {
 
     setLoading(true);
     try {
-      const response = await fetch('/api/whatif', {
+      const response = await fetch('/api/what-if', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -104,7 +244,7 @@ function WhatIfAnalysis({ baselinePatient }) {
 
         <div className="form-group">
           <label>
-            Current Value: <strong>{baselinePatient[selectedFeature]}</strong>
+            Current Value: <strong>{baselineValue}</strong>
           </label>
           <input
             type="number"
@@ -117,6 +257,63 @@ function WhatIfAnalysis({ baselinePatient }) {
         </div>
       </div>
 
+      <div className="card" style={{ background: 'var(--bg)', marginBottom: '1rem' }}>
+        <h4 style={{ marginBottom: '0.5rem' }}>Clinical Preview (Before Running Simulation)</h4>
+        <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
+          Disease focus: <strong>{selectedDisease.replace(/_/g, ' ')}</strong>
+        </div>
+        {suggestedCounterfactuals.length > 0 && (
+          <div style={{ marginBottom: '1rem' }}>
+            <div style={{ fontSize: '0.95rem', fontWeight: 600, marginBottom: '0.5rem' }}>
+              Suggested counterfactual plan
+            </div>
+            <div className="feature-list">
+              {suggestedCounterfactuals.map((item, idx) => (
+                <div key={item.feature} className="feature-item" style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
+                  <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', gap: '1rem' }}>
+                    <div className="feature-name">
+                      {idx + 1}. {item.feature.replace(/_/g, ' ')}: {item.direction} to {item.targetValue.toFixed(2)}
+                    </div>
+                    <div style={{ fontWeight: 600, color: 'var(--secondary)' }}>
+                      recommended
+                    </div>
+                  </div>
+                  <div style={{ marginTop: '0.35rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                    {item.action}
+                  </div>
+                  <div style={{ marginTop: '0.35rem', fontSize: '0.9rem' }}>
+                    If {item.feature.replace(/_/g, ' ')} changes from {item.currentValue.toFixed(2)} to {item.targetValue.toFixed(2)}, the model is expected to move in the safer direction.
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {proposedValue === null ? (
+          <div style={{ fontSize: '0.9rem' }}>
+            Pick a suggested action above or enter your own proposed value to preview directional impact.
+          </div>
+        ) : (
+          <>
+            <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}>
+              Proposed change: <strong>{baselineValue}</strong> {' -> '} <strong>{proposedValue}</strong>
+              {' '}({delta > 0 ? '+' : ''}{delta.toFixed(2)})
+            </div>
+            <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}>
+              {isIncrease && guidance ? guidance.increase : null}
+              {isDecrease && guidance ? guidance.decrease : null}
+              {!isIncrease && !isDecrease ? 'No net change entered; risk is expected to remain close to baseline.' : null}
+            </div>
+            {guidance && (
+              <div style={{ fontSize: '0.9rem' }}>
+                Suggested clinical checks: {guidance.actions}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
       <button onClick={handleAnalyze} className="btn btn-primary" disabled={loading}>
         {loading ? 'Analyzing...' : '🔍 Analyze Impact'}
       </button>
@@ -124,6 +321,50 @@ function WhatIfAnalysis({ baselinePatient }) {
       {whatIfResult && (
         <div style={{ marginTop: '2rem' }}>
           <h3 style={{ marginBottom: '1rem' }}>Analysis Results</h3>
+
+          {whatIfResult.clinical_summary && (
+            <div className="card" style={{ background: 'var(--bg)', marginBottom: '1rem' }}>
+              <h4 style={{ marginBottom: '0.5rem' }}>What Should Change</h4>
+              <div style={{ fontSize: '0.95rem' }}>{whatIfResult.clinical_summary}</div>
+            </div>
+          )}
+
+          {whatIfResult.recommended_changes && whatIfResult.recommended_changes.length > 0 && (
+            <div className="card" style={{ background: 'var(--bg)', marginBottom: '1rem' }}>
+              <h4 style={{ marginBottom: '0.75rem' }}>Ranked Risk-Reducing Actions</h4>
+              <div className="feature-list">
+                {whatIfResult.recommended_changes.map((item, idx) => (
+                  <div key={idx} className="feature-item" style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
+                    <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', gap: '1rem' }}>
+                      <div className="feature-name">
+                        {idx + 1}. {item.feature.replace(/_/g, ' ')}: {item.direction} to {Number(item.target_value).toFixed(2)}
+                      </div>
+                      <div style={{ fontWeight: 600, color: item.risk_delta < 0 ? 'var(--secondary)' : 'var(--danger)' }}>
+                        {(item.risk_delta * 100).toFixed(1)}%
+                      </div>
+                    </div>
+                    <div style={{ marginTop: '0.35rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                      {item.action} | expected risk: {(item.expected_risk * 100).toFixed(1)}% | impact: {item.impact_label}
+                    </div>
+                    <div style={{ marginTop: '0.35rem', fontSize: '0.9rem' }}>
+                      If {item.feature.replace(/_/g, ' ')} {item.direction.toLowerCase()}, risk is expected to {item.risk_delta < 0 ? 'decrease' : 'increase'} by {Math.abs(item.risk_delta * 100).toFixed(1)} percentage points.
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {whatIfResult.counterfactual_explanations && whatIfResult.counterfactual_explanations.length > 0 && (
+            <div className="card" style={{ background: 'var(--bg)', marginBottom: '1rem' }}>
+              <h4 style={{ marginBottom: '0.75rem' }}>Detailed Counterfactuals</h4>
+              <ul style={{ marginLeft: '1.25rem', color: 'var(--text)', lineHeight: 1.8 }}>
+                {whatIfResult.counterfactual_explanations.map((line, idx) => (
+                  <li key={idx}>{line}</li>
+                ))}
+              </ul>
+            </div>
+          )}
           
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
             <div className="card" style={{ background: 'var(--bg)' }}>

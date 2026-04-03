@@ -145,6 +145,80 @@ function Results({ data }) {
                   </div>
                 </details>
               )}
+
+              {pred.shap_top_features && pred.shap_top_features.length > 0 && (
+                <details style={{ marginTop: '0.75rem' }}>
+                  <summary style={{ cursor: 'pointer', fontSize: '0.9rem', fontWeight: 500 }}>
+                    SHAP Local Explanation
+                  </summary>
+                  <div className="feature-list">
+                    {pred.shap_top_features.map((feat, idx) => (
+                      <div key={idx} className="feature-item">
+                        <div className="feature-name">{feat.feature_name.replace(/_/g, ' ')}</div>
+                        <div className="feature-value">
+                          SHAP: {feat.importance > 0 ? '+' : ''}{feat.importance.toFixed(4)}
+                        </div>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                          Value: {feat.value.toFixed(2)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              )}
+
+              {pred.lime_top_features && pred.lime_top_features.length > 0 && (
+                <details style={{ marginTop: '0.75rem' }}>
+                  <summary style={{ cursor: 'pointer', fontSize: '0.9rem', fontWeight: 500 }}>
+                    LIME Local Explanation
+                  </summary>
+                  <div className="feature-list">
+                    {pred.lime_top_features.map((feat, idx) => (
+                      <div key={idx} className="feature-item">
+                        <div className="feature-name">{feat.feature_name.replace(/_/g, ' ')}</div>
+                        <div className="feature-value">
+                          LIME: {feat.importance > 0 ? '+' : ''}{feat.importance.toFixed(4)}
+                        </div>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                          Value: {feat.value.toFixed(2)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              )}
+
+              {pred.explanation_methods && pred.explanation_methods.length > 0 && (
+                <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                  Methods: {pred.explanation_methods.join(', ')}
+                </div>
+              )}
+
+              {pred.explanation_warnings && pred.explanation_warnings.length > 0 && (
+                <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: 'var(--warning)' }}>
+                  {pred.explanation_warnings.join(' | ')}
+                </div>
+              )}
+
+              {pred.clinical_decision_support_report && (
+                <details style={{ marginTop: '0.75rem' }}>
+                  <summary style={{ cursor: 'pointer', fontSize: '0.9rem', fontWeight: 500 }}>
+                    Clinical Decision Support Insight
+                  </summary>
+                  <pre
+                    style={{
+                      marginTop: '0.5rem',
+                      whiteSpace: 'pre-wrap',
+                      fontFamily: 'inherit',
+                      fontSize: '0.9rem',
+                      lineHeight: 1.45,
+                      color: 'var(--text-primary)',
+                    }}
+                  >
+                    {pred.clinical_decision_support_report}
+                  </pre>
+                </details>
+              )}
             </div>
             <div
               className="result-score"
