@@ -4,7 +4,7 @@ Advanced Training Pipeline - Maximum Accuracy
 Trains advanced models using real MIMIC-IV mini data.
 
 Default behavior:
-- Load raw MIMIC-IV mini tables from dataset/mimic4_mini/...
+- Load raw MIMIC-IV tables from dataset/mimic4/...
 - Build a supervised training CSV using load_mimic_for_training.py logic
 - Train advanced models with feature engineering and model selection
 """
@@ -15,7 +15,13 @@ from pathlib import Path
 import joblib
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import roc_auc_score, accuracy_score, f1_score
+from sklearn.metrics import (
+    roc_auc_score,
+    accuracy_score,
+    f1_score,
+    balanced_accuracy_score,
+    average_precision_score,
+)
 from sklearn.neural_network import MLPClassifier
 import xgboost as xgb
 import warnings
@@ -93,7 +99,37 @@ class AdvancedModelTrainer:
         self.output_dir.mkdir(exist_ok=True)
         self.scaler = StandardScaler()
     
-    def train_optimized_model(self, X_train, y_train, X_val, y_val, disease):
+    @staticmethod
+    def _find_optimal_threshold(y_true, y_pred_proba, objective='f1'):
+        """Choose a decision threshold for the selected objective."""
+        if objective == 'youden':
+            from sklearn.metrics import roc_curve
+
+            fpr, tpr, thresholds = roc_curve(y_true, y_pred_proba)
+            j_scores = tpr - fpr
+            optimal_idx = np.argmax(j_scores)
+            return thresholds[optimal_idx] if optimal_idx < len(thresholds) else 0.5
+
+        thresholds = np.linspace(0.05, 0.95, 181)
+        best_threshold = 0.5
+        best_score = -np.inf
+
+        for threshold in thresholds:
+            y_pred = (y_pred_proba >= threshold).astype(int)
+            if objective == 'accuracy':
+                score = accuracy_score(y_true, y_pred)
+            elif objective == 'balanced_accuracy':
+                score = balanced_accuracy_score(y_true, y_pred)
+            else:
+                score = f1_score(y_true, y_pred, zero_division=0)
+
+            if score > best_score:
+                best_score = score
+                best_threshold = threshold
+
+        return float(best_threshold)
+
+    def train_optimized_model(self, X_train, y_train, X_val, y_val, disease, threshold_objective='f1'):
         """Train with grid search and optimal hyperparameters."""
         
         print(f"\n{'='*60}")
@@ -163,10 +199,12 @@ class AdvancedModelTrainer:
         best_model = None
         best_auroc = 0
         best_name = ""
+        model_aurocs = {}
         
         for name, model in models.items():
             y_pred_proba = model.predict_proba(X_val_scaled)[:, 1]
             auroc = roc_auc_score(y_val, y_pred_proba)
+            model_aurocs[name] = float(auroc)
             if auroc > best_auroc:
                 best_auroc = auroc
                 best_model = model
@@ -176,25 +214,48 @@ class AdvancedModelTrainer:
         
         # Use best model for final predictions
         y_pred_proba = best_model.predict_proba(X_val_scaled)[:, 1]
-        
-        # Optimal threshold
-        from sklearn.metrics import roc_curve
-        fpr, tpr, thresholds = roc_curve(y_val, y_pred_proba)
-        j_scores = tpr - fpr
-        optimal_idx = np.argmax(j_scores)
-        optimal_threshold = thresholds[optimal_idx] if optimal_idx < len(thresholds) else 0.5
+
+        # Select threshold for the chosen operating objective.
+        optimal_threshold = self._find_optimal_threshold(
+            y_val,
+            y_pred_proba,
+            objective=threshold_objective,
+        )
         
         y_pred = (y_pred_proba >= optimal_threshold).astype(int)
+        y_pred_default = (y_pred_proba >= 0.5).astype(int)
         
         # Metrics
         auroc = roc_auc_score(y_val, y_pred_proba)
+        pr_auc = average_precision_score(y_val, y_pred_proba)
         accuracy = accuracy_score(y_val, y_pred)
+        accuracy_default = accuracy_score(y_val, y_pred_default)
+        balanced_acc = balanced_accuracy_score(y_val, y_pred)
         f1 = f1_score(y_val, y_pred, zero_division=0)
         
         print(f"✅ AUROC: {auroc:.3f}")
+        print(f"✅ PR-AUC: {pr_auc:.3f}")
         print(f"✅ Accuracy: {accuracy:.3f}")
+        print(f"✅ Accuracy@0.50: {accuracy_default:.3f}")
+        print(f"✅ Balanced Acc: {balanced_acc:.3f}")
         print(f"✅ F1 Score: {f1:.3f}")
-        print(f"   Threshold: {optimal_threshold:.3f}")
+        print(f"   Threshold ({threshold_objective}): {optimal_threshold:.3f}")
+
+        # Persist per-model variants so serving can load both XGB and NN.
+        for name, model in models.items():
+            variant_bundle = {
+                'model': model,
+                'model_type': name,
+                'scaler': self.scaler,
+                'optimal_threshold': 0.5,
+                'threshold_objective': 'fixed_0.5',
+                'metrics': {
+                    'auroc': model_aurocs.get(name, 0.0),
+                },
+            }
+            variant_path = self.output_dir / f"{disease}_advanced_{name}_v1.0.0.pkl"
+            joblib.dump(variant_bundle, variant_path)
+            print(f"💾 Saved variant: {variant_path}")
         
         # Save
         model_path = self.output_dir / f"{disease}_advanced_v1.0.0.pkl"
@@ -203,7 +264,15 @@ class AdvancedModelTrainer:
             'model_type': best_name,
             'scaler': self.scaler,
             'optimal_threshold': optimal_threshold,
-            'metrics': {'auroc': auroc, 'accuracy': accuracy, 'f1_score': f1}
+            'threshold_objective': threshold_objective,
+            'metrics': {
+                'auroc': auroc,
+                'pr_auc': pr_auc,
+                'accuracy': accuracy,
+                'accuracy_at_0_50': accuracy_default,
+                'balanced_accuracy': balanced_acc,
+                'f1_score': f1,
+            },
         }
         joblib.dump(bundle, model_path)
         print(f"💾 Saved: {model_path}")
@@ -211,6 +280,7 @@ class AdvancedModelTrainer:
         return bundle['metrics']
 
 
+DEFAULT_MIMIC4_PATH = Path("dataset/mimic4/physionet.org/files/mimiciv/3.1")
 DEFAULT_MIMIC4_MINI_PATH = Path("dataset/mimic4_mini/physionet.org/files/mimiciv/3.1")
 
 
@@ -218,18 +288,20 @@ def load_dataset_from_mimic4_mini(
     mimic_path: Path,
     output_csv: Path,
     max_patients: int = None,
+    max_event_rows: int = 200000,
 ) -> pd.DataFrame:
-    """Build a supervised training dataset from local MIMIC-IV mini files."""
+    """Build a supervised training dataset from local MIMIC-IV files."""
     if not mimic_path.exists():
         raise FileNotFoundError(
-            f"MIMIC-IV mini path not found: {mimic_path}. "
+            f"MIMIC-IV path not found: {mimic_path}. "
             "Provide --mimic-mini-path with a directory containing hosp/ and icu/."
         )
 
-    print(f"\n📂 Building dataset from MIMIC-IV mini at: {mimic_path}")
+    print(f"\n📂 Building dataset from MIMIC-IV at: {mimic_path}")
     loader = MIMICDataLoader(str(mimic_path))
     dataset = loader.create_training_dataset(
         max_patients=max_patients,
+        max_event_rows=max_event_rows,
         output_file=str(output_csv),
     )
     print(f"✅ Built dataset with {len(dataset)} rows")
@@ -248,8 +320,8 @@ def main():
     parser.add_argument(
         '--mimic-mini-path',
         type=str,
-        default=str(DEFAULT_MIMIC4_MINI_PATH),
-        help='Path to local MIMIC-IV mini folder containing hosp/ and icu/.',
+        default=str(DEFAULT_MIMIC4_PATH if DEFAULT_MIMIC4_PATH.exists() else DEFAULT_MIMIC4_MINI_PATH),
+        help='Path to local MIMIC-IV folder containing hosp/ and icu/. Defaults to dataset/mimic4 when present, otherwise dataset/mimic4_mini.',
     )
     parser.add_argument(
         '--prepared-output',
@@ -262,6 +334,18 @@ def main():
         type=int,
         default=None,
         help='Optional maximum ICU stays to sample while building dataset from MIMIC-IV mini. If omitted, use all available data.',
+    )
+    parser.add_argument(
+        '--max-event-rows',
+        type=int,
+        default=1000000,
+        help='Maximum event rows to read per source table while building features (higher uses more data, slower).',
+    )
+    parser.add_argument(
+        '--threshold-objective',
+        choices=['f1', 'accuracy', 'balanced_accuracy', 'youden'],
+        default='f1',
+        help='Objective used to choose the classification threshold.',
     )
     args = parser.parse_args()
     
@@ -278,6 +362,7 @@ def main():
             mimic_path=Path(args.mimic_mini_path),
             output_csv=Path(args.prepared_output),
             max_patients=args.max_patients,
+            max_event_rows=args.max_event_rows,
         )
     
     # Feature engineering
@@ -291,11 +376,34 @@ def main():
     print(f"✅ Engineered {X.shape[1]} features (from {len(feature_cols)} base features)")
     
     # Train models
-    diseases = ['sepsis', 'kidney_failure', 'heart_disease', 'diabetes',
-                'anemia', 'thalassemia', 'thrombocytopenia', 'mortality']
+    diseases = ['sepsis', 'kidney_failure', 'diabetes',
+                'anemia', 'thrombocytopenia', 'hypertension', 'mortality']
     
     trainer = AdvancedModelTrainer()
     results = {}
+
+    use_predefined_splits = (
+        'split' in df.columns and
+        set(df['split'].dropna().unique()).issuperset({'train'})
+    )
+    if use_predefined_splits:
+        train_mask = df['split'] == 'train'
+        if (df['split'] == 'val').any():
+            val_mask = df['split'] == 'val'
+            eval_split_name = 'val'
+        elif (df['split'] == 'test').any():
+            val_mask = df['split'] == 'test'
+            eval_split_name = 'test'
+        else:
+            use_predefined_splits = False
+            eval_split_name = 'random'
+    else:
+        eval_split_name = 'random'
+
+    if use_predefined_splits:
+        print(f"\n📌 Using predefined split column for training/evaluation (train vs {eval_split_name})")
+    else:
+        print("\n📌 No usable predefined split found, falling back to random stratified split")
     
     for disease in diseases:
         y = df[disease].values
@@ -304,11 +412,24 @@ def main():
             print(f"\n⚠️  Skipping {disease}: insufficient cases")
             continue
         
-        X_train, X_val, y_train, y_val = train_test_split(
-            X, y, test_size=0.15, stratify=y, random_state=42
-        )
+        if use_predefined_splits:
+            X_train = X.loc[train_mask]
+            X_val = X.loc[val_mask]
+            y_train = y[train_mask.values]
+            y_val = y[val_mask.values]
+        else:
+            X_train, X_val, y_train, y_val = train_test_split(
+                X, y, test_size=0.15, stratify=y, random_state=42
+            )
         
-        metrics = trainer.train_optimized_model(X_train, y_train, X_val, y_val, disease)
+        metrics = trainer.train_optimized_model(
+            X_train,
+            y_train,
+            X_val,
+            y_val,
+            disease,
+            threshold_objective=args.threshold_objective,
+        )
         results[disease] = metrics
     
     # Summary
@@ -318,6 +439,7 @@ def main():
     
     for disease, metrics in results.items():
         print(f"{disease:20s} AUROC: {metrics['auroc']:.3f}  "
+              f"PR-AUC: {metrics['pr_auc']:.3f}  "
               f"Acc: {metrics['accuracy']:.3f}  "
               f"F1: {metrics['f1_score']:.3f}")
     

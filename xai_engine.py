@@ -91,6 +91,8 @@ class ExplanationMethod(str, Enum):
     GRADCAM = "gradcam"
     COUNTERFACTUAL = "counterfactual"
     INTEGRATED_GRADIENTS = "integrated_gradients"
+    CONTRASTIVE_ANCHOR = "contrastive_anchor"
+    CONSTRAINED_RESPONSE_SURFACE = "constrained_response_surface"
 
 
 class DataType(str, Enum):
@@ -267,6 +269,94 @@ class CounterfactualExplanation(BaseModel):
         }
 
 
+class ContrastiveAnchorFeature(FeatureImportance):
+    """Feature-level output for contrastive anchor explanations."""
+    anchor_value: float = Field(..., description="Reference value used as the local anchor")
+    anchor_prediction: float = Field(..., description="Prediction at the anchor value")
+    raw_delta: float = Field(..., description="Signed change from current prediction to anchor prediction")
+    stability_score: float = Field(..., ge=0, le=1, description="Agreement of perturbation signs")
+    sensitivity_score: float = Field(..., ge=0, description="Average local sensitivity magnitude")
+    anchor_distance: float = Field(..., ge=0, description="Normalized distance from current value to anchor")
+    context_support: float = Field(..., ge=0, le=1, description="Fraction of context samples supporting the same direction")
+    absolute_low: float = Field(..., description="Clinical absolute lower bound")
+    absolute_high: float = Field(..., description="Clinical absolute upper bound")
+    preferred_low: float = Field(..., description="Preferred clinical lower bound")
+    preferred_high: float = Field(..., description="Preferred clinical upper bound")
+    plausibility_score: float = Field(..., ge=0, le=1, description="Clinical plausibility of the anchor")
+
+
+class ContrastiveAnchorExplanation(BaseModel):
+    """Model-agnostic contrastive anchor explanation output."""
+    method: Literal["contrastive_anchor"] = "contrastive_anchor"
+    prediction_value: float = Field(..., description="Prediction for the original patient")
+    baseline_prediction: float = Field(..., description="Mean prediction across the local background context")
+    feature_contributions: List[ContrastiveAnchorFeature] = Field(..., description="Feature-level contrastive anchor scores")
+    anchor_strategy: str = Field(..., description="How anchor values were selected")
+    local_context_size: int = Field(..., description="Number of perturbed context samples used")
+    confidence: float = Field(..., ge=0, le=1, description="Reliability of the local explanation")
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "method": "contrastive_anchor",
+                "prediction_value": 0.74,
+                "baseline_prediction": 0.31,
+                "feature_contributions": [],
+                "anchor_strategy": "median-path local perturbation",
+                "local_context_size": 32,
+                "confidence": 0.84
+            }
+        }
+
+
+class ResponseSurfacePoint(BaseModel):
+    """One sampled point on a feature response curve."""
+    feature_value: float
+    predicted_risk: float
+
+
+class ResponseSurfaceFeature(FeatureImportance):
+    """Feature-level output for constrained response-surface explanations."""
+    response_area: float = Field(..., ge=0, description="Average absolute risk displacement across sampled curve")
+    peak_risk: float = Field(..., ge=0, le=1)
+    trough_risk: float = Field(..., ge=0, le=1)
+    elasticity_up: float = Field(..., description="Average local slope moving feature upward")
+    elasticity_down: float = Field(..., description="Average local slope moving feature downward")
+    monotonicity_score: float = Field(..., ge=0, le=1, description="Sign consistency of local slopes")
+    nonlinearity_score: float = Field(..., ge=0, le=1, description="Curvature intensity of local response")
+    absolute_low: float = Field(...)
+    absolute_high: float = Field(...)
+    preferred_low: float = Field(...)
+    preferred_high: float = Field(...)
+    sampled_points: List[ResponseSurfacePoint] = Field(default_factory=list)
+
+
+class ResponseSurfaceExplanation(BaseModel):
+    """Model-agnostic constrained response-surface explanation output."""
+    method: Literal["constrained_response_surface"] = "constrained_response_surface"
+    prediction_value: float = Field(..., ge=0, le=1)
+    baseline_prediction: float = Field(..., ge=0, le=1)
+    feature_contributions: List[ResponseSurfaceFeature] = Field(default_factory=list)
+    sampling_steps: int = Field(..., ge=5, le=25)
+    local_context_size: int = Field(..., ge=4)
+    strategy: str
+    confidence: float = Field(..., ge=0, le=1)
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "method": "constrained_response_surface",
+                "prediction_value": 0.71,
+                "baseline_prediction": 0.29,
+                "feature_contributions": [],
+                "sampling_steps": 11,
+                "local_context_size": 32,
+                "strategy": "clinically bounded univariate response-curve sampling",
+                "confidence": 0.82
+            }
+        }
+
+
 class ClinicalExplanation(BaseModel):
     """Unified clinician-readable explanation."""
     patient_id: str
@@ -292,6 +382,8 @@ class ClinicalExplanation(BaseModel):
     lime_details: Optional[LIMEExplanation] = None
     gradcam_details: Optional[GradCAMExplanation] = None
     counterfactual_details: Optional[CounterfactualExplanation] = None
+    contrastive_anchor_details: Optional[ContrastiveAnchorExplanation] = None
+    response_surface_details: Optional[ResponseSurfaceExplanation] = None
     
     # Metadata
     computation_time_ms: float
@@ -529,6 +621,24 @@ class ClinicalTranslator:
                 recommendations.append("→ Fluid resuscitation; consider vasopressor support")
         
         return recommendations
+
+
+CONTRASTIVE_ANCHOR_LIMITS: Dict[str, Tuple[float, float]] = {
+    "age": (18.0, 100.0),
+    "gender": (0.0, 1.0),
+    "temperature": (95.0, 106.0),
+    "heart_rate": (40.0, 200.0),
+    "systolic_bp": (70.0, 250.0),
+    "diastolic_bp": (40.0, 150.0),
+    "respiratory_rate": (8.0, 50.0),
+    "wbc_count": (1.0, 50.0),
+    "hemoglobin": (5.0, 20.0),
+    "platelet_count": (20.0, 700.0),
+    "creatinine": (0.3, 15.0),
+    "bun": (5.0, 200.0),
+    "glucose": (50.0, 700.0),
+    "lactate": (0.5, 25.0),
+}
 
 
 # ============================================================================
@@ -785,6 +895,10 @@ class XAIEngine:
             explanation_details = self._explain_lime(model_name, X_array)
         elif method == ExplanationMethod.GRADCAM:
             explanation_details = self._explain_gradcam(model_name, X_array, clinical_context or {})
+        elif method == ExplanationMethod.CONTRASTIVE_ANCHOR:
+            explanation_details = self._explain_contrastive_anchor(model_name, X_array)
+        elif method == ExplanationMethod.CONSTRAINED_RESPONSE_SURFACE:
+            explanation_details = self._explain_constrained_response_surface(model_name, X_array)
         else:
             raise NotImplementedError(f"Method {method} not yet implemented")
         
@@ -804,6 +918,16 @@ class XAIEngine:
             shap_details = None
             lime_details = None
             gradcam_details = explanation_details
+        elif isinstance(explanation_details, ContrastiveAnchorExplanation):
+            feature_importances = list(explanation_details.feature_contributions)
+            shap_details = None
+            lime_details = None
+            gradcam_details = None
+        elif isinstance(explanation_details, ResponseSurfaceExplanation):
+            feature_importances = list(explanation_details.feature_contributions)
+            shap_details = None
+            lime_details = None
+            gradcam_details = None
         else:
             feature_importances = []
             shap_details = None
@@ -846,6 +970,8 @@ class XAIEngine:
             shap_details=shap_details,
             lime_details=lime_details,
             gradcam_details=gradcam_details,
+            contrastive_anchor_details=explanation_details if isinstance(explanation_details, ContrastiveAnchorExplanation) else None,
+            response_surface_details=explanation_details if isinstance(explanation_details, ResponseSurfaceExplanation) else None,
             computation_time_ms=(time.time() - start_time) * 1000,
             cached=False
         )
@@ -993,6 +1119,341 @@ class XAIEngine:
             prediction_class=1,
             prediction_confidence=0.85,
             high_attention_regions=[]
+        )
+
+    def _predict_scores(self, model: Any, X: np.ndarray) -> np.ndarray:
+        """Return model scores as a 1D numpy array, preferring positive-class probability."""
+        if hasattr(model, "predict_proba"):
+            proba = np.asarray(model.predict_proba(X), dtype=float)
+            if proba.ndim == 1:
+                return proba.reshape(-1)
+            if proba.shape[1] == 1:
+                return proba[:, 0].reshape(-1)
+            return proba[:, 1].reshape(-1)
+
+        if hasattr(model, "decision_function"):
+            scores = np.asarray(model.decision_function(X), dtype=float).reshape(-1)
+            clipped = np.clip(scores, -50.0, 50.0)
+            return 1.0 / (1.0 + np.exp(-clipped))
+
+        return np.asarray(model.predict(X), dtype=float).reshape(-1)
+
+    def _explain_contrastive_anchor(self, model_name: str, X: np.ndarray) -> ContrastiveAnchorExplanation:
+        """Generate a model-agnostic contrastive anchor explanation."""
+        model_info = self.models[model_name]
+        model = model_info['model']
+        feature_names = model_info['feature_names']
+
+        background = model_info.get('background_data')
+        if isinstance(background, pd.DataFrame):
+            background_array = background.values
+        elif background is not None:
+            background_array = np.asarray(background)
+        else:
+            background_array = None
+
+        rng = np.random.default_rng()
+        context_size = 32
+
+        if background_array is None or background_array.size == 0:
+            feature_scale = np.maximum(np.abs(X[0]), 1.0)
+            background_array = np.repeat(X, repeats=context_size, axis=0).astype(float)
+            background_array = background_array + rng.normal(
+                loc=0.0,
+                scale=0.05 * feature_scale,
+                size=background_array.shape
+            )
+
+        if background_array.ndim == 1:
+            background_array = background_array.reshape(1, -1)
+
+        local_size = min(context_size, max(8, background_array.shape[0]))
+        if background_array.shape[0] >= local_size:
+            context_indices = rng.choice(background_array.shape[0], size=local_size, replace=False)
+        else:
+            context_indices = rng.choice(background_array.shape[0], size=local_size, replace=True)
+        local_context = np.asarray(background_array[context_indices], dtype=float)
+
+        prediction_value = float(self._predict_scores(model, X)[0])
+        baseline_prediction = float(np.mean(self._predict_scores(model, local_context)))
+
+        feature_contributions: List[ContrastiveAnchorFeature] = []
+        stability_values: List[float] = []
+        prediction_gaps: List[float] = []
+
+        for idx, feature_name in enumerate(feature_names):
+            current_value = float(X[0, idx])
+            reference_values = np.asarray(background_array[:, idx], dtype=float)
+            if reference_values.size == 0:
+                reference_values = np.array([current_value], dtype=float)
+
+            absolute_low, absolute_high = CONTRASTIVE_ANCHOR_LIMITS.get(feature_name, (float(np.min(reference_values)), float(np.max(reference_values))))
+            preferred = ClinicalTranslator.CLINICAL_MAPPINGS.get(feature_name, {}).get('normal_range')
+            if preferred:
+                preferred_low, preferred_high = float(preferred[0]), float(preferred[1])
+            else:
+                preferred_low, preferred_high = absolute_low, absolute_high
+
+            anchor_value = float(np.median(reference_values))
+            anchor_value = float(np.clip(anchor_value, absolute_low, absolute_high))
+            if anchor_value < preferred_low:
+                anchor_value = preferred_low
+            elif anchor_value > preferred_high:
+                anchor_value = preferred_high
+
+            lower_quantile = float(np.percentile(reference_values, 25))
+            upper_quantile = float(np.percentile(reference_values, 75))
+            spread = float(np.std(reference_values))
+            iqr = float(upper_quantile - lower_quantile)
+            scale = max(spread, iqr, abs(current_value - anchor_value), 1e-6)
+
+            path_points = np.linspace(current_value, anchor_value, num=9)
+            path_predictions: List[float] = []
+
+            for path_value in path_points:
+                perturbed_context = local_context.copy()
+                perturbed_context[:, idx] = np.clip(path_value, absolute_low, absolute_high)
+                path_predictions.append(float(np.mean(self._predict_scores(model, perturbed_context))))
+
+            path_predictions_array = np.asarray(path_predictions, dtype=float)
+            anchor_index = int(np.argmin(np.abs(path_predictions_array - baseline_prediction)))
+            anchor_prediction = float(path_predictions_array[anchor_index])
+            selected_anchor_value = float(path_points[anchor_index])
+
+            raw_delta = float(prediction_value - anchor_prediction)
+            local_deltas = path_predictions_array - prediction_value
+            sign_mask = np.sign(local_deltas[np.abs(local_deltas) > 1e-9])
+            if sign_mask.size == 0:
+                stability_score = 1.0
+                context_support = 1.0
+            else:
+                reference_sign = np.sign(raw_delta) if abs(raw_delta) > 1e-9 else np.sign(np.mean(local_deltas))
+                stability_score = float(np.mean(sign_mask == reference_sign))
+                context_support = stability_score
+
+            sensitivity_score = float(np.mean(np.abs(local_deltas)) / scale)
+            anchor_distance = float(abs(current_value - selected_anchor_value) / scale)
+            weighted_importance = float(raw_delta * (0.5 + 0.5 * stability_score))
+            if preferred_low <= selected_anchor_value <= preferred_high:
+                plausibility_score = 1.0
+            else:
+                distance_from_preferred = min(abs(selected_anchor_value - preferred_low), abs(selected_anchor_value - preferred_high))
+                plausibility_score = float(np.clip(1.0 - distance_from_preferred / max(absolute_high - absolute_low, 1e-6), 0.0, 1.0))
+
+            translation = self.translator.translate_feature(feature_name, current_value, weighted_importance)
+            percentile = float(np.mean(reference_values <= current_value) * 100.0)
+
+            feature_contributions.append(ContrastiveAnchorFeature(
+                feature_name=feature_name,
+                importance_score=weighted_importance,
+                feature_value=current_value,
+                baseline_value=float(np.median(reference_values)),
+                percentile=percentile,
+                clinical_label=translation['clinical_label'],
+                clinical_interpretation=translation['interpretation'],
+                direction=translation['direction'],
+                anchor_value=selected_anchor_value,
+                anchor_prediction=anchor_prediction,
+                raw_delta=raw_delta,
+                stability_score=max(0.0, min(1.0, stability_score)),
+                sensitivity_score=max(0.0, sensitivity_score),
+                anchor_distance=max(0.0, anchor_distance),
+                context_support=max(0.0, min(1.0, context_support))
+                ,absolute_low=float(absolute_low),
+                absolute_high=float(absolute_high),
+                preferred_low=float(preferred_low),
+                preferred_high=float(preferred_high),
+                plausibility_score=max(0.0, min(1.0, plausibility_score))
+            ))
+
+            stability_values.append(max(0.0, min(1.0, stability_score)))
+            prediction_gaps.append(abs(prediction_value - baseline_prediction))
+
+        feature_contributions.sort(key=lambda item: abs(item.importance_score), reverse=True)
+
+        confidence = float(np.clip(
+            0.45 * np.mean(stability_values) +
+            0.25 * (1.0 - min(1.0, float(np.std(prediction_gaps)))) +
+            0.20 * (1.0 - min(1.0, abs(prediction_value - baseline_prediction))) +
+            0.10 * float(np.mean([item.plausibility_score for item in feature_contributions])),
+            0.0,
+            1.0
+        ))
+
+        return ContrastiveAnchorExplanation(
+            prediction_value=prediction_value,
+            baseline_prediction=baseline_prediction,
+            feature_contributions=feature_contributions,
+            anchor_strategy="median-path local perturbation against background context",
+            local_context_size=local_size,
+            confidence=confidence
+        )
+
+    def _explain_constrained_response_surface(self, model_name: str, X: np.ndarray) -> ResponseSurfaceExplanation:
+        """Generate a clinically bounded, model-agnostic local response-surface explanation."""
+        model_info = self.models[model_name]
+        model = model_info['model']
+        feature_names = model_info['feature_names']
+
+        background = model_info.get('background_data')
+        if isinstance(background, pd.DataFrame):
+            background_array = background.values
+        elif background is not None:
+            background_array = np.asarray(background)
+        else:
+            background_array = None
+
+        rng = np.random.default_rng()
+        context_size = 32
+        sampling_steps = 11
+
+        if background_array is None or background_array.size == 0:
+            feature_scale = np.maximum(np.abs(X[0]), 1.0)
+            background_array = np.repeat(X, repeats=context_size, axis=0).astype(float)
+            background_array = background_array + rng.normal(
+                loc=0.0,
+                scale=0.04 * feature_scale,
+                size=background_array.shape
+            )
+
+        if background_array.ndim == 1:
+            background_array = background_array.reshape(1, -1)
+
+        local_size = min(context_size, max(8, background_array.shape[0]))
+        if background_array.shape[0] >= local_size:
+            context_indices = rng.choice(background_array.shape[0], size=local_size, replace=False)
+        else:
+            context_indices = rng.choice(background_array.shape[0], size=local_size, replace=True)
+        local_context = np.asarray(background_array[context_indices], dtype=float)
+
+        prediction_value = float(self._predict_scores(model, X)[0])
+        baseline_prediction = float(np.mean(self._predict_scores(model, local_context)))
+
+        contributions: List[ResponseSurfaceFeature] = []
+        monotonicity_scores: List[float] = []
+        nonlinearity_scores: List[float] = []
+
+        for idx, feature_name in enumerate(feature_names):
+            current_value = float(X[0, idx])
+            ref_values = np.asarray(background_array[:, idx], dtype=float)
+            if ref_values.size == 0:
+                ref_values = np.array([current_value], dtype=float)
+
+            absolute_low, absolute_high = CONTRASTIVE_ANCHOR_LIMITS.get(
+                feature_name,
+                (float(np.min(ref_values)), float(np.max(ref_values)))
+            )
+
+            preferred = ClinicalTranslator.CLINICAL_MAPPINGS.get(feature_name, {}).get('normal_range')
+            if preferred is not None:
+                preferred_low, preferred_high = float(preferred[0]), float(preferred[1])
+            else:
+                preferred_low, preferred_high = absolute_low, absolute_high
+
+            preferred_low = max(absolute_low, preferred_low)
+            preferred_high = min(absolute_high, preferred_high)
+
+            low_bound = max(absolute_low, min(current_value, preferred_low))
+            high_bound = min(absolute_high, max(current_value, preferred_high))
+            if high_bound - low_bound < 1e-6:
+                span = max((absolute_high - absolute_low) * 0.15, 1e-3)
+                low_bound = max(absolute_low, current_value - span)
+                high_bound = min(absolute_high, current_value + span)
+
+            grid = np.linspace(low_bound, high_bound, num=sampling_steps)
+            sampled_risks: List[float] = []
+
+            for value in grid:
+                perturbed_context = local_context.copy()
+                perturbed_context[:, idx] = value
+                sampled_risks.append(float(np.mean(self._predict_scores(model, perturbed_context))))
+
+            sampled_risks_arr = np.asarray(sampled_risks, dtype=float)
+            deltas = sampled_risks_arr - prediction_value
+
+            denom = max(high_bound - low_bound, 1e-6)
+            response_area = float(np.trapz(np.abs(deltas), x=grid) / denom)
+
+            first_diff = np.diff(sampled_risks_arr)
+            if first_diff.size == 0:
+                monotonicity = 1.0
+                nonlinearity = 0.0
+            else:
+                dominant_sign = np.sign(np.mean(first_diff))
+                if dominant_sign == 0:
+                    dominant_sign = 1.0
+                monotonicity = float(np.mean(np.sign(first_diff) == dominant_sign))
+                second_diff = np.diff(first_diff)
+                slope_scale = max(np.mean(np.abs(first_diff)), 1e-6)
+                nonlinearity = float(np.clip(np.mean(np.abs(second_diff)) / slope_scale, 0.0, 1.0)) if second_diff.size > 0 else 0.0
+
+            target_value = float(np.clip((preferred_low + preferred_high) / 2.0, absolute_low, absolute_high))
+            target_context = local_context.copy()
+            target_context[:, idx] = target_value
+            target_prediction = float(np.mean(self._predict_scores(model, target_context)))
+
+            signed_effect = float(prediction_value - target_prediction)
+            weighted_importance = float(signed_effect * (0.50 + 0.35 * monotonicity + 0.15 * (1.0 - nonlinearity)))
+
+            current_idx = int(np.argmin(np.abs(grid - current_value)))
+            up_slopes = np.diff(sampled_risks_arr[current_idx:]) / np.maximum(np.diff(grid[current_idx:]), 1e-6)
+            down_slopes = np.diff(sampled_risks_arr[:current_idx + 1]) / np.maximum(np.diff(grid[:current_idx + 1]), 1e-6)
+
+            elasticity_up = float(np.mean(up_slopes)) if up_slopes.size > 0 else 0.0
+            elasticity_down = float(np.mean(down_slopes)) if down_slopes.size > 0 else 0.0
+
+            translation = self.translator.translate_feature(feature_name, current_value, weighted_importance)
+            percentile = float(np.mean(ref_values <= current_value) * 100.0)
+
+            sampled_points = [
+                ResponseSurfacePoint(feature_value=float(v), predicted_risk=float(r))
+                for v, r in zip(grid, sampled_risks_arr)
+            ]
+
+            contributions.append(ResponseSurfaceFeature(
+                feature_name=feature_name,
+                importance_score=weighted_importance,
+                feature_value=current_value,
+                baseline_value=float(np.median(ref_values)),
+                percentile=percentile,
+                clinical_label=translation['clinical_label'],
+                clinical_interpretation=translation['interpretation'],
+                direction=translation['direction'],
+                response_area=max(0.0, response_area),
+                peak_risk=float(np.max(sampled_risks_arr)),
+                trough_risk=float(np.min(sampled_risks_arr)),
+                elasticity_up=elasticity_up,
+                elasticity_down=elasticity_down,
+                monotonicity_score=max(0.0, min(1.0, monotonicity)),
+                nonlinearity_score=max(0.0, min(1.0, nonlinearity)),
+                absolute_low=float(absolute_low),
+                absolute_high=float(absolute_high),
+                preferred_low=float(preferred_low),
+                preferred_high=float(preferred_high),
+                sampled_points=sampled_points,
+            ))
+
+            monotonicity_scores.append(max(0.0, min(1.0, monotonicity)))
+            nonlinearity_scores.append(max(0.0, min(1.0, nonlinearity)))
+
+        contributions.sort(key=lambda item: abs(item.importance_score), reverse=True)
+
+        confidence = float(np.clip(
+            0.45 * (float(np.mean(monotonicity_scores)) if monotonicity_scores else 0.0) +
+            0.30 * (1.0 - (float(np.mean(nonlinearity_scores)) if nonlinearity_scores else 0.0)) +
+            0.25 * (1.0 - min(1.0, abs(prediction_value - baseline_prediction))),
+            0.0,
+            1.0,
+        ))
+
+        return ResponseSurfaceExplanation(
+            prediction_value=prediction_value,
+            baseline_prediction=baseline_prediction,
+            feature_contributions=contributions,
+            sampling_steps=sampling_steps,
+            local_context_size=local_size,
+            strategy="clinically bounded univariate response-curve sampling",
+            confidence=confidence,
         )
     
     # ------------------------------------------------------------------------
@@ -1225,6 +1686,47 @@ if __name__ == "__main__":
     )
     print(f"  Second call - Cached: {explanation_lime2.cached}")
     print(f"  Second call - Time: {explanation_lime2.computation_time_ms:.1f}ms")
+
+    # Example 2.5: Contrastive Anchor Explanation
+    print("\n[Example 2.5] Contrastive Anchor Explanation")
+    print("-" * 80)
+
+    explanation_anchor = engine.explain(
+        model_name="sepsis_predictor",
+        X=patient_data,
+        method=ExplanationMethod.CONTRASTIVE_ANCHOR,
+        clinical_context={'patient_id': 'P12345'},
+        top_k=3
+    )
+
+    print(f"  Risk: {explanation_anchor.predicted_risk:.1%}")
+    print(f"  Confidence: {explanation_anchor.confidence:.1%}")
+    print(f"  Method: {explanation_anchor.explanation_method.value}")
+    print(f"  Contrastive Detail Confidence: {explanation_anchor.contrastive_anchor_details.confidence:.1%}")
+    for factor in explanation_anchor.top_risk_factors[:3]:
+        print(f"    • {factor.clinical_label}: {factor.importance_score:+.3f} -> anchor {factor.feature_value:.2f} to {getattr(factor, 'anchor_value', factor.feature_value):.2f}")
+
+    # Example 2.6: Constrained Response Surface Explanation
+    print("\n[Example 2.6] Constrained Response Surface Explanation")
+    print("-" * 80)
+
+    explanation_surface = engine.explain(
+        model_name="sepsis_predictor",
+        X=patient_data,
+        method=ExplanationMethod.CONSTRAINED_RESPONSE_SURFACE,
+        clinical_context={'patient_id': 'P12345'},
+        top_k=3
+    )
+
+    print(f"  Risk: {explanation_surface.predicted_risk:.1%}")
+    print(f"  Method: {explanation_surface.explanation_method.value}")
+    print(f"  Surface Detail Confidence: {explanation_surface.response_surface_details.confidence:.1%}")
+    for factor in explanation_surface.top_risk_factors[:3]:
+        print(
+            f"    • {factor.clinical_label}: {factor.importance_score:+.3f} | "
+            f"response area {getattr(factor, 'response_area', 0.0):.4f} | "
+            f"nonlinearity {getattr(factor, 'nonlinearity_score', 0.0):.2f}"
+        )
     
     # Example 3: Counterfactual Generation
     print("\n[Example 3] Counterfactual Explanations")

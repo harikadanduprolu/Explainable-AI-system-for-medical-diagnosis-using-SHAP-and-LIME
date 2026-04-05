@@ -1,16 +1,33 @@
 import argparse
+import importlib
 import os
 import random
 from io import BytesIO
+from pathlib import Path
 from typing import Dict, Optional, Tuple
 
 import cv2
 import numpy as np
 import pandas as pd
-import tensorflow as tf
 from google.api_core.exceptions import NotFound
 from google.cloud import storage
-from tensorflow.keras import layers, models
+
+joblib = importlib.import_module("joblib")
+sklearn_linear_model = importlib.import_module("sklearn.linear_model")
+sklearn_metrics = importlib.import_module("sklearn.metrics")
+sklearn_pipeline = importlib.import_module("sklearn.pipeline")
+sklearn_preprocessing = importlib.import_module("sklearn.preprocessing")
+
+try:
+    tf = importlib.import_module("tensorflow")
+    layers = importlib.import_module("tensorflow.keras.layers")
+    models = importlib.import_module("tensorflow.keras.models")
+    TF_AVAILABLE = True
+except Exception:
+    tf = None
+    layers = None
+    models = None
+    TF_AVAILABLE = False
 
 # -------------------------------
 # CONFIG
@@ -18,8 +35,8 @@ from tensorflow.keras import layers, models
 BUCKET_NAME = "mimic-cxr-jpg-2.1.0.physionet.org"
 PREFIX = "files/p10"
 METADATA_BUCKET = "mimic-cxr-jpg-2.1.0.physionet.org"
-CHEXPERT_BLOB = "mimic-cxr-jpg-2.1.0-chexpert.csv.gz"
-SPLIT_BLOB = "mimic-cxr-jpg-2.1.0-split.csv.gz"
+CHEXPERT_BLOB = "mimic-cxr-2.0.0-chexpert.csv.gz"
+SPLIT_BLOB = "mimic-cxr-2.0.0-split.csv.gz"
 IMG_SIZE = 224
 BATCH_SIZE = 16
 SEED = 42
@@ -28,7 +45,8 @@ SEED = 42
 
 random.seed(SEED)
 np.random.seed(SEED)
-tf.random.set_seed(SEED)
+if TF_AVAILABLE:
+    tf.random.set_seed(SEED)
 
 
 # -------------------------------
@@ -44,8 +62,15 @@ def get_bucket(
         return client.bucket(bucket_name)
 
     project = gcp_project or os.getenv("GOOGLE_CLOUD_PROJECT") or os.getenv("GCLOUD_PROJECT")
+    if not project:
+        raise ValueError(
+            "GCP project ID is required for Requester Pays buckets. "
+            "Pass --gcp-project or set GOOGLE_CLOUD_PROJECT."
+        )
     client = storage.Client(project=project)
-    return client.bucket(bucket_name)
+    # Required by Requester Pays buckets (like MIMIC-CXR-JPG): bill reads to this project.
+    bucket = client.bucket(bucket_name, user_project=project)
+    return bucket
 
 
 def load_csv_from_gcs(bucket: storage.Bucket, blob_name: str) -> pd.DataFrame:
@@ -182,7 +207,50 @@ def load_batch(
             images.append(img)
             labels.append(dicom_label_map[dicom_id])
 
-        if len(images) >= limit:
+        if limit > 0 and len(images) >= limit:
+            break
+
+    if not images:
+        return (
+            np.empty((0, img_size, img_size, 1), dtype=np.float32),
+            np.empty((0,), dtype=np.int32),
+        )
+
+    return np.array(images, dtype=np.float32), np.array(labels, dtype=np.int32)
+
+
+def load_batch_local(
+    local_root: str,
+    img_size: int,
+    dicom_label_map: Dict[str, int],
+    limit: int = 200,
+) -> Tuple[np.ndarray, np.ndarray]:
+    root = Path(local_root)
+    if not root.exists():
+        raise FileNotFoundError(f"Local image root not found: {local_root}")
+
+    candidates = list(root.rglob("*.jpg")) + list(root.rglob("*.jpeg")) + list(root.rglob("*.png"))
+    random.shuffle(candidates)
+
+    images = []
+    labels = []
+
+    for path in candidates:
+        dicom_id = path.stem
+        if dicom_id not in dicom_label_map:
+            continue
+
+        img = cv2.imread(str(path), cv2.IMREAD_GRAYSCALE)
+        if img is None:
+            continue
+        img = cv2.resize(img, (img_size, img_size))
+        img = img.astype(np.float32) / 255.0
+        img = np.expand_dims(img, axis=-1)
+
+        images.append(img)
+        labels.append(dicom_label_map[dicom_id])
+
+        if limit > 0 and len(images) >= limit:
             break
 
     if not images:
@@ -197,7 +265,9 @@ def load_batch(
 # -------------------------------
 # BUILD MODEL
 # -------------------------------
-def build_model(img_size: int) -> tf.keras.Model:
+def build_model(img_size: int):
+    if not TF_AVAILABLE:
+        raise RuntimeError("TensorFlow is unavailable in this environment")
     model = models.Sequential([
         layers.Input(shape=(img_size, img_size, 1)),
         layers.Conv2D(32, (3, 3), activation="relu"),
@@ -213,6 +283,29 @@ def build_model(img_size: int) -> tf.keras.Model:
 
     model.compile(optimizer="adam", loss="binary_crossentropy", metrics=["accuracy"])
     return model
+
+
+def build_sklearn_model():
+    return sklearn_pipeline.Pipeline([
+        ("scaler", sklearn_preprocessing.StandardScaler()),
+        (
+            "clf",
+            sklearn_linear_model.LogisticRegression(
+                max_iter=1000,
+                solver="lbfgs",
+                class_weight="balanced",
+                random_state=SEED,
+            ),
+        ),
+    ])
+
+
+def prepare_sklearn_features(x_data: np.ndarray, target_size: int = 64) -> np.ndarray:
+    flattened = []
+    for image in x_data:
+        resized = cv2.resize(image.squeeze(), (target_size, target_size))
+        flattened.append(resized.astype(np.float32).reshape(-1))
+    return np.array(flattened, dtype=np.float32)
 
 
 # -------------------------------
@@ -271,9 +364,34 @@ def main() -> None:
     parser.add_argument("--img-size", type=int, default=IMG_SIZE, help="Square image size")
     parser.add_argument("--batch-size", type=int, default=BATCH_SIZE, help="Training batch size")
     parser.add_argument("--epochs", type=int, default=5, help="Number of epochs")
-    parser.add_argument("--limit", type=int, default=200, help="Max number of images to load")
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=200,
+        help="Max number of images to load; use 0 to load all matched images",
+    )
     parser.add_argument("--output", default="mimic_model.h5", help="Path to save model")
+    parser.add_argument(
+        "--images-local-root",
+        default=None,
+        help="Local root folder containing downloaded CXR JPG files; when provided, skips GCS image reads",
+    )
+    parser.add_argument(
+        "--backend",
+        choices=["auto", "tensorflow", "sklearn"],
+        default="auto",
+        help="Training backend. Use sklearn to run on Python 3.13 without TensorFlow.",
+    )
     args = parser.parse_args()
+
+    backend = args.backend
+    if backend == "auto":
+        backend = "tensorflow" if TF_AVAILABLE else "sklearn"
+    if backend == "tensorflow" and not TF_AVAILABLE:
+        raise RuntimeError(
+            "TensorFlow backend requested, but TensorFlow is not available in this environment. "
+            "Use --backend sklearn or run under Python 3.11."
+        )
 
     print("Loading metadata from cloud...")
     metadata_bucket = get_bucket(
@@ -292,23 +410,32 @@ def main() -> None:
     )
     print(f"Loaded labels for {len(dicom_label_map)} DICOM images")
 
-    print("Loading images from cloud...")
-    image_bucket = get_bucket(
-        args.bucket,
-        gcp_project=args.gcp_project,
-        use_anonymous_gcs=args.use_anonymous_gcs,
-    )
-    x_data, y_data = load_batch(
-        image_bucket,
-        args.prefix,
-        args.img_size,
-        dicom_label_map,
-        limit=args.limit,
-    )
+    if args.images_local_root:
+        print(f"Loading images from local folder: {args.images_local_root}")
+        x_data, y_data = load_batch_local(
+            local_root=args.images_local_root,
+            img_size=args.img_size,
+            dicom_label_map=dicom_label_map,
+            limit=args.limit,
+        )
+    else:
+        print("Loading images from cloud...")
+        image_bucket = get_bucket(
+            args.bucket,
+            gcp_project=args.gcp_project,
+            use_anonymous_gcs=args.use_anonymous_gcs,
+        )
+        x_data, y_data = load_batch(
+            image_bucket,
+            args.prefix,
+            args.img_size,
+            dicom_label_map,
+            limit=args.limit,
+        )
 
     if len(x_data) < 10:
         raise RuntimeError(
-            f"Not enough images loaded from {args.bucket}/{args.prefix}. Loaded: {len(x_data)}"
+            f"Not enough images loaded from the selected source. Loaded: {len(x_data)}"
         )
 
     pos_rate = float(np.mean(y_data)) if len(y_data) else 0.0
@@ -321,25 +448,49 @@ def main() -> None:
     if len(x_test) == 0:
         raise RuntimeError("No test samples after split. Increase --limit.")
 
-    model = build_model(args.img_size)
+    output_path = Path(args.output)
 
-    print("Training model...")
-    model.fit(
-        x_train,
-        y_train,
-        epochs=args.epochs,
-        batch_size=args.batch_size,
-        validation_data=(x_test, y_test),
-        verbose=1,
-    )
+    if backend == "tensorflow":
+        model = build_model(args.img_size)
 
-    print("Evaluating...")
-    loss, acc = model.evaluate(x_test, y_test, verbose=0)
+        print("Training TensorFlow CNN...")
+        model.fit(
+            x_train,
+            y_train,
+            epochs=args.epochs,
+            batch_size=args.batch_size,
+            validation_data=(x_test, y_test),
+            verbose=1,
+        )
+
+        print("Evaluating...")
+        loss, acc = model.evaluate(x_test, y_test, verbose=0)
+        print(f"Test Loss: {loss:.4f}")
+        print(f"Test Accuracy: {acc:.4f}")
+
+        model.save(str(output_path))
+        print(f"Model saved to: {output_path}")
+        return
+
+    print("Training sklearn fallback model for Python 3.13...")
+    x_train_flat = prepare_sklearn_features(x_train, target_size=64)
+    x_test_flat = prepare_sklearn_features(x_test, target_size=64)
+
+    model = build_sklearn_model()
+    model.fit(x_train_flat, y_train)
+
+    probabilities = model.predict_proba(x_test_flat)[:, 1]
+    predictions = (probabilities >= 0.5).astype(int)
+    acc = sklearn_metrics.accuracy_score(y_test, predictions)
+    loss = sklearn_metrics.log_loss(y_test, probabilities, labels=[0, 1])
+
     print(f"Test Loss: {loss:.4f}")
     print(f"Test Accuracy: {acc:.4f}")
 
-    model.save(args.output)
-    print(f"Model saved to: {args.output}")
+    if output_path.suffix.lower() not in {".joblib", ".pkl"}:
+        output_path = output_path.with_suffix(".joblib")
+    joblib.dump(model, output_path)
+    print(f"Model saved to: {output_path}")
 
 
 if __name__ == "__main__":

@@ -210,14 +210,12 @@ def apply_stratified_splits(
     return dataset
 
 
-# ICD-10 code mappings for 8 diseases (MIMIC-IV uses ICD-10)
+# ICD-10 code mappings for clinically defensible tabular targets (MIMIC-IV uses ICD-10)
 DISEASE_ICD10_CODES = {
     'sepsis': ['A40', 'A41', 'R65.2'],  # Streptococcal sepsis, other sepsis, SIRS
     'kidney_failure': ['N17', 'N18', 'N19'],  # Acute/chronic/unspecified kidney failure
-    'heart_disease': ['I21', 'I22', 'I23', 'I24', 'I25'],  # MI and coronary disease
     'diabetes': ['E10', 'E11', 'E13', 'E14'],  # All types of diabetes
     'anemia': ['D50', 'D51', 'D52', 'D53', 'D55', 'D56', 'D57', 'D58', 'D59', 'D60', 'D61', 'D64'],  # All anemia types
-    'thalassemia': ['D56'],  # Thalassemia (alpha/beta)
     'thrombocytopenia': ['D69'],  # Other specified hemorrhagic conditions
     'hypertension': ['I10', 'I11', 'I12', 'I13', 'I14', 'I15'],  # All hypertension types
 }
@@ -550,7 +548,7 @@ class MIMICDataLoader:
         }
     
     def create_disease_labels(self, diagnoses_df: pd.DataFrame, hadm_ids: list) -> pd.DataFrame:
-        """Create binary labels for 8 diseases based on ICD-10 codes (MIMIC-IV)."""
+        """Create binary labels for configured diseases based on ICD-10 codes (MIMIC-IV)."""
         print("⏳ Creating disease labels from ICD-10 codes...")
         
         # Filter diagnoses for our admissions
@@ -559,17 +557,25 @@ class MIMICDataLoader:
         # Start from all admissions so missing diagnoses still receive zero labels.
         base_labels = pd.DataFrame({'HADM_ID': pd.Series(hadm_ids, dtype='int64')}).drop_duplicates()
         
-        # Initialize disease columns
+        # Normalize ICD code once (vectorized) to keep memory usage stable on full MIMIC-IV.
+        icd_norm = (
+            diagnoses_df['ICD_CODE']
+            .astype('string')
+            .str.replace('.', '', regex=False)
+            .str.strip()
+            .str.upper()
+            .fillna('')
+        )
+
+        # Initialize disease columns.
         for disease in DISEASE_ICD10_CODES.keys():
             diagnoses_df[disease] = 0
-        
-        # Mark diseases based on ICD-10 codes (prefix matching)
+
+        # Mark diseases by checking any normalized ICD prefix in one vectorized operation.
         for disease, icd_codes in DISEASE_ICD10_CODES.items():
-            for icd_code in icd_codes:
-                # ICD-10 codes in MIMIC-IV are stored with periods (e.g., A40.0).
-                # Use normalized prefix matching.
-                mask = diagnoses_df['ICD_CODE'].astype(str).map(self._normalize_icd).str.startswith(self._normalize_icd(icd_code))
-                diagnoses_df.loc[mask, disease] = 1
+            prefixes = tuple(self._normalize_icd(code) for code in icd_codes)
+            mask = icd_norm.str.startswith(prefixes)
+            diagnoses_df.loc[mask, disease] = 1
         
         # Aggregate by admission (max value if multiple diagnoses)
         if diagnoses_df.empty:
@@ -697,6 +703,7 @@ class MIMICDataLoader:
     def create_training_dataset(
         self,
         max_patients: Optional[int] = None,
+        max_event_rows: int = 200000,
         output_file: str = None,
         cxr_metadata: Optional[str] = None,
         cxr_labels: Optional[str] = None,
@@ -739,7 +746,7 @@ class MIMICDataLoader:
         )
         
         # Extract event data using MIMIC hierarchy and aggregate to model features.
-        event_data = self.extract_vitals_and_labs(icustays, max_items=200000)
+        event_data = self.extract_vitals_and_labs(icustays, max_items=max_event_rows)
         
         # Build feature matrix
         features = self.build_feature_matrix(icustays, event_data, max_patients)

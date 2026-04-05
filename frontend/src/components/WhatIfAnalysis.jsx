@@ -41,12 +41,10 @@ const FEATURE_GUIDANCE = {
 const DISEASE_PRIORITIES = {
   sepsis: ['lactate', 'temperature', 'wbc_count', 'systolic_bp', 'heart_rate', 'respiratory_rate'],
   kidney_failure: ['creatinine', 'bun', 'systolic_bp', 'lactate'],
-  heart_disease: ['systolic_bp', 'heart_rate', 'glucose', 'creatinine'],
   diabetes: ['glucose', 'systolic_bp', 'creatinine'],
   anemia: ['hemoglobin', 'platelet_count', 'creatinine'],
-  thalassemia: ['hemoglobin', 'platelet_count'],
   thrombocytopenia: ['platelet_count', 'hemoglobin'],
-  cardiovascular: ['systolic_bp', 'heart_rate', 'glucose', 'lactate'],
+  hypertension: ['systolic_bp', 'diastolic_bp', 'heart_rate', 'creatinine'],
   mortality: ['lactate', 'systolic_bp', 'creatinine', 'heart_rate', 'respiratory_rate'],
 };
 
@@ -123,12 +121,10 @@ function WhatIfAnalysis({ baselinePatient, availableDiseases = [] }) {
   const fallbackDiseases = [
     'sepsis',
     'kidney_failure',
-    'heart_disease',
     'diabetes',
     'anemia',
-    'thalassemia',
     'thrombocytopenia',
-    'cardiovascular',
+    'hypertension',
     'mortality',
   ];
   const diseases = availableDiseases.length > 0 ? availableDiseases : fallbackDiseases;
@@ -157,6 +153,8 @@ function WhatIfAnalysis({ baselinePatient, availableDiseases = [] }) {
   const isIncrease = delta !== null && delta > 0;
   const isDecrease = delta !== null && delta < 0;
   const guidance = FEATURE_GUIDANCE[selectedFeature];
+
+  const formatRisk = (value) => `${(Number(value) * 100).toFixed(1)}%`;
 
   useEffect(() => {
     const defaultSuggestion = suggestedCounterfactuals[0];
@@ -322,6 +320,41 @@ function WhatIfAnalysis({ baselinePatient, availableDiseases = [] }) {
         <div style={{ marginTop: '2rem' }}>
           <h3 style={{ marginBottom: '1rem' }}>Analysis Results</h3>
 
+          <div className="card" style={{ background: 'var(--bg)', marginBottom: '1rem' }}>
+            <h4 style={{ marginBottom: '0.75rem' }}>Risk Comparison (Before vs After)</h4>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: '0.75rem' }}>
+              <div style={{ padding: '0.75rem', borderRadius: '8px', background: '#fff', border: '1px solid var(--border)' }}>
+                <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Before Update</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--primary)' }}>{formatRisk(whatIfResult.baseline_risk)}</div>
+              </div>
+
+              <div style={{ fontSize: '1.25rem', color: 'var(--text-secondary)', fontWeight: 700 }} aria-hidden="true">
+                →
+              </div>
+
+              <div style={{ padding: '0.75rem', borderRadius: '8px', background: '#fff', border: '1px solid var(--border)' }}>
+                <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>After Update</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--primary)' }}>{formatRisk(whatIfResult.new_risk)}</div>
+              </div>
+            </div>
+
+            <div style={{ marginTop: '0.8rem', display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Delta:</span>
+              <span
+                style={{
+                  fontSize: '0.95rem',
+                  fontWeight: 700,
+                  color: whatIfResult.risk_delta < 0 ? 'var(--secondary)' : 'var(--danger)',
+                }}
+              >
+                {whatIfResult.risk_delta > 0 ? '+' : ''}{formatRisk(whatIfResult.risk_delta)}
+              </span>
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                ({whatIfResult.risk_delta_percent > 0 ? '+' : ''}{whatIfResult.risk_delta_percent.toFixed(1)}% relative)
+              </span>
+            </div>
+          </div>
+
           {whatIfResult.clinical_summary && (
             <div className="card" style={{ background: 'var(--bg)', marginBottom: '1rem' }}>
               <h4 style={{ marginBottom: '0.5rem' }}>What Should Change</h4>
@@ -340,11 +373,14 @@ function WhatIfAnalysis({ baselinePatient, availableDiseases = [] }) {
                         {idx + 1}. {item.feature.replace(/_/g, ' ')}: {item.direction} to {Number(item.target_value).toFixed(2)}
                       </div>
                       <div style={{ fontWeight: 600, color: item.risk_delta < 0 ? 'var(--secondary)' : 'var(--danger)' }}>
-                        {(item.risk_delta * 100).toFixed(1)}%
+                        {formatRisk(item.risk_delta)}
                       </div>
                     </div>
+                    <div style={{ marginTop: '0.35rem', fontSize: '0.9rem' }}>
+                      <strong>Risk:</strong> {formatRisk(whatIfResult.baseline_risk)} {' -> '} {formatRisk(item.expected_risk)}
+                    </div>
                     <div style={{ marginTop: '0.35rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                      {item.action} | expected risk: {(item.expected_risk * 100).toFixed(1)}% | impact: {item.impact_label}
+                      {item.action} | impact: {item.impact_label}
                     </div>
                     <div style={{ marginTop: '0.35rem', fontSize: '0.9rem' }}>
                       If {item.feature.replace(/_/g, ' ')} {item.direction.toLowerCase()}, risk is expected to {item.risk_delta < 0 ? 'decrease' : 'increase'} by {Math.abs(item.risk_delta * 100).toFixed(1)} percentage points.

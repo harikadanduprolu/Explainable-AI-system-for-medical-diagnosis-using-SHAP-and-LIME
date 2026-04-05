@@ -511,13 +511,19 @@ class EvaluationPipeline:
         print(f"\n[Visualization] Generating ROC curves...")
         
         n_diseases = len(self.predictions)
-        fig, axes = plt.subplots(2, 2, figsize=figsize)
-        axes = axes.flatten()
+        if n_diseases == 0:
+            print("  ⚠️ No predictions available. Skipping.")
+            return
+
+        n_cols = min(3, int(np.ceil(np.sqrt(n_diseases))))
+        n_rows = int(np.ceil(n_diseases / n_cols))
+        fig, axes = plt.subplots(n_rows, n_cols, figsize=(figsize[0] * n_cols / 2, figsize[1] * n_rows / 2))
+        axes = np.atleast_1d(axes).flatten()
         
         diseases = list(self.predictions.keys())
-        colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728']
+        colors = sns.color_palette("tab10", n_colors=max(4, n_diseases))
         
-        for idx, disease in enumerate(diseases[:4]):
+        for idx, disease in enumerate(diseases):
             ax = axes[idx]
             
             y_true = self.predictions[disease]['y_true']
@@ -548,6 +554,9 @@ class EvaluationPipeline:
             ax.set_xlim([-0.02, 1.02])
             ax.set_ylim([-0.02, 1.02])
             ax.set_aspect('equal')
+
+        for idx in range(len(diseases), len(axes)):
+            axes[idx].axis('off')
         
         plt.tight_layout()
         plt.savefig(output_path, dpi=300, bbox_inches='tight')
@@ -563,13 +572,19 @@ class EvaluationPipeline:
         print(f"\n[Visualization] Generating PR curves...")
         
         n_diseases = len(self.predictions)
-        fig, axes = plt.subplots(2, 2, figsize=figsize)
-        axes = axes.flatten()
+        if n_diseases == 0:
+            print("  ⚠️ No predictions available. Skipping.")
+            return
+
+        n_cols = min(3, int(np.ceil(np.sqrt(n_diseases))))
+        n_rows = int(np.ceil(n_diseases / n_cols))
+        fig, axes = plt.subplots(n_rows, n_cols, figsize=(figsize[0] * n_cols / 2, figsize[1] * n_rows / 2))
+        axes = np.atleast_1d(axes).flatten()
         
         diseases = list(self.predictions.keys())
-        colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728']
+        colors = sns.color_palette("tab10", n_colors=max(4, n_diseases))
         
-        for idx, disease in enumerate(diseases[:4]):
+        for idx, disease in enumerate(diseases):
             ax = axes[idx]
             
             y_true = self.predictions[disease]['y_true']
@@ -601,6 +616,9 @@ class EvaluationPipeline:
             ax.grid(alpha=0.3)
             ax.set_xlim([-0.02, 1.02])
             ax.set_ylim([-0.02, 1.02])
+
+        for idx in range(len(diseases), len(axes)):
+            axes[idx].axis('off')
         
         plt.tight_layout()
         plt.savefig(output_path, dpi=300, bbox_inches='tight')
@@ -616,13 +634,20 @@ class EvaluationPipeline:
         """Generate calibration curves to assess probability calibration."""
         print(f"\n[Visualization] Generating calibration curves...")
         
-        fig, axes = plt.subplots(2, 2, figsize=figsize)
-        axes = axes.flatten()
+        n_diseases = len(self.predictions)
+        if n_diseases == 0:
+            print("  ⚠️ No predictions available. Skipping.")
+            return
+
+        n_cols = min(3, int(np.ceil(np.sqrt(n_diseases))))
+        n_rows = int(np.ceil(n_diseases / n_cols))
+        fig, axes = plt.subplots(n_rows, n_cols, figsize=(figsize[0] * n_cols / 2, figsize[1] * n_rows / 2))
+        axes = np.atleast_1d(axes).flatten()
         
         diseases = list(self.predictions.keys())
-        colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728']
+        colors = sns.color_palette("tab10", n_colors=max(4, n_diseases))
         
-        for idx, disease in enumerate(diseases[:4]):
+        for idx, disease in enumerate(diseases):
             ax = axes[idx]
             
             y_true = self.predictions[disease]['y_true']
@@ -656,6 +681,9 @@ class EvaluationPipeline:
             ax.set_xlim([-0.02, 1.02])
             ax.set_ylim([-0.02, 1.02])
             ax.set_aspect('equal')
+
+        for idx in range(len(diseases), len(axes)):
+            axes[idx].axis('off')
         
         plt.tight_layout()
         plt.savefig(output_path, dpi=300, bbox_inches='tight')
@@ -670,12 +698,19 @@ class EvaluationPipeline:
         """Generate confusion matrices for all diseases."""
         print(f"\n[Visualization] Generating confusion matrices...")
         
-        fig, axes = plt.subplots(2, 2, figsize=figsize)
-        axes = axes.flatten()
+        n_diseases = len(self.predictions)
+        if n_diseases == 0:
+            print("  ⚠️ No predictions available. Skipping.")
+            return
+
+        n_cols = min(3, int(np.ceil(np.sqrt(n_diseases))))
+        n_rows = int(np.ceil(n_diseases / n_cols))
+        fig, axes = plt.subplots(n_rows, n_cols, figsize=(figsize[0] * n_cols / 2, figsize[1] * n_rows / 2))
+        axes = np.atleast_1d(axes).flatten()
         
         diseases = list(self.predictions.keys())
         
-        for idx, disease in enumerate(diseases[:4]):
+        for idx, disease in enumerate(diseases):
             ax = axes[idx]
             
             metrics = self.metrics[disease]
@@ -693,6 +728,9 @@ class EvaluationPipeline:
             ax.set_xlabel('Predicted Label', fontsize=12)
             ax.set_ylabel('True Label', fontsize=12)
             ax.set_title(f'{disease} - Confusion Matrix', fontsize=14, fontweight='bold')
+
+        for idx in range(len(diseases), len(axes)):
+            axes[idx].axis('off')
         
         plt.tight_layout()
         plt.savefig(output_path, dpi=300, bbox_inches='tight')

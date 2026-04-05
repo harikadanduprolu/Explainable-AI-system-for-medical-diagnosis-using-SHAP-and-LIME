@@ -150,7 +150,7 @@ function PredictionForm({ onSubmit, initialData, loading }) {
         </div>
 
         <div className="card" style={{ marginTop: '1.5rem' }}>
-          <div className="card-header">
+          {/* <div className="card-header">
             <h3 style={{ marginBottom: '0.25rem' }}>Chest X-ray Evidence (MIMIC-CXR)</h3>
             <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 500 }}>
               <input
@@ -160,7 +160,7 @@ function PredictionForm({ onSubmit, initialData, loading }) {
               />
               Provide imaging probabilities to activate the fusion engine
             </label>
-          </div>
+          </div> */}
 
           {imagingEnabled && (
             <div className="form-grid" style={{ marginTop: '1rem' }}>

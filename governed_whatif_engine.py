@@ -48,8 +48,23 @@ from enum import Enum
 from typing import Dict, Optional, Any, List
 from datetime import datetime, timezone
 
-from governance import GovernanceContext, RegulatoryViolationError
-from decision_trace import DecisionTrace
+try:
+    from governance import GovernanceContext, RegulatoryViolationError
+except Exception:
+    class RegulatoryViolationError(RuntimeError):
+        """Fallback regulatory exception for standalone module usage."""
+
+    class GovernanceContext:  # pragma: no cover - fallback shim
+        """Minimal fallback context type for compatibility."""
+        pass
+
+try:
+    from decision_trace import DecisionTrace
+except Exception:
+    class DecisionTrace:  # pragma: no cover - fallback shim
+        """Minimal fallback trace type for compatibility."""
+        pass
+
 from model_registry import ModelRegistry
 from audit_logging import AuditEventType
 

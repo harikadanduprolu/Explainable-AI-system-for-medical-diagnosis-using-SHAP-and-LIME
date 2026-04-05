@@ -17,6 +17,16 @@ function Results({ data }) {
 
   const formatPercent = (value) => `${(value * 100).toFixed(1)}%`;
 
+  const formatDiseaseLabel = (disease) => {
+    const labels = {
+      kidney_failure: 'Acute Kidney Injury Risk',
+      diabetes: 'Hyperglycemia Risk',
+      hypertension: 'Hypertension Risk',
+      mortality: 'Mortality Risk',
+    };
+    return labels[disease] || disease.replace(/_/g, ' ');
+  };
+
   const getScoreColor = (category) => {
     switch (category) {
       case 'CRITICAL':
@@ -27,6 +37,77 @@ function Results({ data }) {
       default:
         return 'var(--secondary)';
     }
+  };
+
+  const renderClinicalReport = (reportText) => {
+    if (!reportText) {
+      return null;
+    }
+
+    const lines = reportText.split('\n');
+    const blocks = [];
+    let currentList = [];
+
+    const flushList = () => {
+      if (currentList.length > 0) {
+        blocks.push({ type: 'list', items: currentList });
+        currentList = [];
+      }
+    };
+
+    lines.forEach((line) => {
+      const text = line.trim();
+
+      if (!text) {
+        flushList();
+        return;
+      }
+
+      if (text.startsWith('* ')) {
+        currentList.push(text.slice(2));
+        return;
+      }
+
+      flushList();
+
+      if (text.startsWith('###')) {
+        blocks.push({ type: 'heading', text: text.replace(/^###\s*/, '') });
+      } else {
+        blocks.push({ type: 'text', text });
+      }
+    });
+
+    flushList();
+
+    return (
+      <div className="cds-report">
+        {blocks.map((block, idx) => {
+          if (block.type === 'heading') {
+            return (
+              <h5 key={`h-${idx}`} className="cds-heading">
+                {block.text}
+              </h5>
+            );
+          }
+
+          if (block.type === 'list') {
+            return (
+              <ul key={`l-${idx}`} className="cds-list">
+                {block.items.map((item, itemIdx) => (
+                  <li key={`li-${idx}-${itemIdx}`}>{item}</li>
+                ))}
+              </ul>
+            );
+          }
+
+          return (
+            <p key={`p-${idx}`} className="cds-text">
+              {block.text}
+            </p>
+          );
+        })}
+      </div>
+    );
   };
 
   const renderFusionSummary = () => {
@@ -64,7 +145,7 @@ function Results({ data }) {
             <tbody>
               {summary.fused_predictions.map((fused) => (
                 <tr key={fused.disease}>
-                  <td>{fused.disease.replace(/_/g, ' ')}</td>
+                  <td>{formatDiseaseLabel(fused.disease)}</td>
                   <td>{formatPercent(fused.tabular_risk)}</td>
                   <td>
                     {fused.imaging_signal !== null && fused.imaging_signal !== undefined
@@ -114,7 +195,7 @@ function Results({ data }) {
           >
             <div className="result-info">
               <div className="result-disease">
-                {pred.disease.replace(/_/g, ' ')}
+                {formatDiseaseLabel(pred.disease)}
               </div>
               <div>
                 <span className={`risk-badge ${getRiskColor(pred.risk_category)}`}>
@@ -201,22 +282,11 @@ function Results({ data }) {
               )}
 
               {pred.clinical_decision_support_report && (
-                <details style={{ marginTop: '0.75rem' }}>
-                  <summary style={{ cursor: 'pointer', fontSize: '0.9rem', fontWeight: 500 }}>
+                <details className="cds-details">
+                  <summary className="cds-summary">
                     Clinical Decision Support Insight
                   </summary>
-                  <pre
-                    style={{
-                      marginTop: '0.5rem',
-                      whiteSpace: 'pre-wrap',
-                      fontFamily: 'inherit',
-                      fontSize: '0.9rem',
-                      lineHeight: 1.45,
-                      color: 'var(--text-primary)',
-                    }}
-                  >
-                    {pred.clinical_decision_support_report}
-                  </pre>
+                  {renderClinicalReport(pred.clinical_decision_support_report)}
                 </details>
               )}
             </div>

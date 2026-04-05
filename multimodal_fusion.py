@@ -10,12 +10,19 @@ consistency metrics, governance alerts, and fused risk signals.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from io import BytesIO
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
 
 import logging
+import os
 import numpy as np
 import pandas as pd
+
+try:
+    from google.cloud import storage
+except ImportError:  # pragma: no cover - optional dependency
+    storage = None
 
 from feature_engineering import BASE_FEATURES, add_derived_features
 
@@ -94,37 +101,89 @@ class ImagingEvidenceRepository:
     """
 
     def __init__(self, labels_path: Optional[str] = None, cache_limit: int = 50000):
-        self.labels_path = Path(labels_path) if labels_path else None
+        self.labels_path = labels_path
         self.cache_limit = cache_limit
         self._cache: Dict[str, Dict[str, float]] = {}
         self._index: Optional[pd.DataFrame] = None
+        self._full_df: Optional[pd.DataFrame] = None
 
-        if self.labels_path and self.labels_path.exists():
+        if self.labels_path:
             try:
                 self._bootstrap_index()
             except Exception as exc:
                 logger.warning("Failed to bootstrap CheXpert index: %s", exc)
 
+    def _is_gcs_uri(self) -> bool:
+        return bool(self.labels_path and str(self.labels_path).startswith("gs://"))
+
+    def _parse_gcs_uri(self) -> tuple[str, str]:
+        if not self._is_gcs_uri():
+            raise ValueError("labels_path is not a gs:// URI")
+        without_scheme = str(self.labels_path)[5:]
+        parts = without_scheme.split("/", 1)
+        if len(parts) != 2 or not parts[0] or not parts[1]:
+            raise ValueError(f"Invalid gs:// URI: {self.labels_path}")
+        return parts[0], parts[1]
+
+    def _download_gcs_csv(self) -> pd.DataFrame:
+        if storage is None:
+            raise ImportError(
+                "google-cloud-storage is required to read labels from gs:// paths"
+            )
+
+        bucket_name, blob_name = self._parse_gcs_uri()
+        project = (
+            os.getenv("GCP_PROJECT")
+            or os.getenv("GOOGLE_CLOUD_PROJECT")
+            or os.getenv("GCLOUD_PROJECT")
+        )
+        if not project:
+            raise ValueError(
+                "Set GCP_PROJECT (or GOOGLE_CLOUD_PROJECT) for Requester Pays bucket access"
+            )
+
+        client = storage.Client(project=project)
+        bucket = client.bucket(bucket_name, user_project=project)
+        blob = bucket.blob(blob_name)
+        raw = blob.download_as_bytes()
+
+        compression = "gzip" if str(blob_name).endswith(".gz") else None
+        return pd.read_csv(BytesIO(raw), compression=compression)
+
+    def _load_labels_df(self) -> pd.DataFrame:
+        if not self.labels_path:
+            raise FileNotFoundError("No labels_path configured")
+
+        if self._is_gcs_uri():
+            return self._download_gcs_csv()
+
+        path = Path(str(self.labels_path))
+        if not path.exists():
+            raise FileNotFoundError(f"CheXpert labels file not found: {path}")
+        compression = "gzip" if path.suffix == ".gz" else None
+        return pd.read_csv(path, compression=compression)
+
     def _bootstrap_index(self) -> None:
         """Load a lightweight subset of the CheXpert CSV for instant lookups."""
-        usecols = ["dicom_id"] + [
-            col for col in SUPPORTED_IMAGING_CHANNELS if col in SUPPORTED_IMAGING_CHANNELS
-        ]
+        usecols = ["dicom_id"] + list(SUPPORTED_IMAGING_CHANNELS)
         # Deduplicate column list while preserving order.
         unique_cols: List[str] = []
         for col in usecols:
             if col not in unique_cols:
                 unique_cols.append(col)
 
-        df = pd.read_csv(
-            self.labels_path,
-            compression="gzip" if self.labels_path.suffix == ".gz" else None,
-            usecols=unique_cols,
-            nrows=self.cache_limit,
-        )
+        full_df = self._load_labels_df()
+        full_df.columns = [c.lower() for c in full_df.columns]
+
+        available_cols = [col for col in unique_cols if col in full_df.columns]
+        if "dicom_id" not in available_cols:
+            raise ValueError("CheXpert labels source missing required column: dicom_id")
+
+        df = full_df[available_cols].head(self.cache_limit)
         df.columns = [c.lower() for c in df.columns]
         df = df.dropna(subset=["dicom_id"]).set_index("dicom_id")
         self._index = df
+        self._full_df = full_df
         logger.info(
             "Bootstrapped %d imaging labels from %s",
             len(df),
@@ -151,28 +210,28 @@ class ImagingEvidenceRepository:
             self._cache[dicom_id] = values
             return values
 
-        # Fallback chunked scan if file exists.
-        if not self.labels_path or not self.labels_path.exists():
+        # Fallback full-data scan if labels source exists.
+        if not self.labels_path:
             return None
 
         try:
-            for chunk in pd.read_csv(
-                self.labels_path,
-                compression="gzip" if self.labels_path.suffix == ".gz" else None,
-                usecols=["dicom_id"] + SUPPORTED_IMAGING_CHANNELS,
-                chunksize=200000,
-            ):
-                chunk.columns = [c.lower() for c in chunk.columns]
-                match = chunk[chunk["dicom_id"] == dicom_id]
-                if not match.empty:
-                    row = match.iloc[0]
-                    values = {
-                        col: _normalize_probability(row[col])
-                        for col in SUPPORTED_IMAGING_CHANNELS
-                        if col in row and not pd.isna(row[col])
-                    }
-                    self._cache[dicom_id] = values
-                    return values
+            if self._full_df is None:
+                self._full_df = self._load_labels_df()
+                self._full_df.columns = [c.lower() for c in self._full_df.columns]
+
+            if "dicom_id" not in self._full_df.columns:
+                return None
+
+            match = self._full_df[self._full_df["dicom_id"] == dicom_id]
+            if not match.empty:
+                row = match.iloc[0]
+                values = {
+                    col: _normalize_probability(row[col])
+                    for col in SUPPORTED_IMAGING_CHANNELS
+                    if col in row and not pd.isna(row[col])
+                }
+                self._cache[dicom_id] = values
+                return values
         except Exception as exc:
             logger.warning("Chunk scanning CheXpert labels failed: %s", exc)
 

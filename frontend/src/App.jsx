@@ -5,6 +5,9 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import ClinicalDashboard from './pages/ClinicalDashboard';
 import LandingPage from './pages/LandingPage';
+import WhatIfAnalysisPage from './pages/WhatIfAnalysisPage';
+import ContrastiveAnchorPage from './pages/ContrastiveAnchorPage';
+import ConstrainedResponseSurfacePage from './pages/ConstrainedResponseSurfacePage';
 import PredictionForm from './components/PredictionForm';
 import Results from './components/Results';
 import WhatIfAnalysis from './components/WhatIfAnalysis';
@@ -152,6 +155,30 @@ function App() {
             element={
               <ProtectedRoute>
                 <ClinicalDashboard />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/clinical/what-if" 
+            element={
+              <ProtectedRoute>
+                <WhatIfAnalysisPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/clinical/contrastive-anchor" 
+            element={
+              <ProtectedRoute>
+                <ContrastiveAnchorPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/clinical/constrained-response-surface" 
+            element={
+              <ProtectedRoute>
+                <ConstrainedResponseSurfacePage />
               </ProtectedRoute>
             } 
           />

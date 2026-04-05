@@ -52,12 +52,10 @@ const ClinicalDashboard = () => {
   const diseaseNames = {
     sepsis: 'Sepsis',
     kidney_failure: 'Kidney Failure',
-    heart_disease: 'Heart Disease',
-    diabetes: 'Diabetes',
+    diabetes: 'Hyperglycemia Risk',
     anemia: 'Anemia',
-    thalassemia: 'Thalassemia',
     thrombocytopenia: 'Thrombocytopenia',
-    cardiovascular: 'Cardiovascular Disease',
+    hypertension: 'Hypertension Risk',
     mortality: 'Mortality Risk'
   };
 
@@ -136,6 +134,55 @@ const ClinicalDashboard = () => {
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  const openWhatIfAnalysis = () => {
+    navigate('/clinical/what-if', {
+      state: {
+        baselinePatient: { ...patientData },
+        availableDiseases: predictions?.predictions?.map((pred) => pred.disease) || [],
+      },
+    });
+  };
+
+  const openContrastiveAnchorView = () => {
+    navigate('/clinical/contrastive-anchor', {
+      state: {
+        baselinePatient: { ...patientData },
+        availableDiseases: predictions?.predictions?.map((pred) => pred.disease) || [],
+      },
+    });
+  };
+
+  const openConstrainedResponseSurfaceView = () => {
+    navigate('/clinical/constrained-response-surface', {
+      state: {
+        baselinePatient: { ...patientData },
+        availableDiseases: predictions?.predictions?.map((pred) => pred.disease) || [],
+      },
+    });
+  };
+
+  const renderRecommendations = (text) => {
+    if (!text) return null;
+
+    const sections = text.split('###').filter(Boolean);
+
+    return sections.map((section, index) => {
+      const [title, ...content] = section.split('\n');
+      return (
+        <div key={index} className="rec-section" style={{ marginBottom: '0.85rem' }}>
+          <h4 className="rec-title" style={{ marginBottom: '0.5rem' }}>🩺 {title.trim()}</h4>
+          <ul className="rec-list" style={{ margin: 0, paddingLeft: '1rem' }}>
+            {content
+              .filter((line) => line.trim() !== '')
+              .map((line, idx) => (
+                <li key={idx}>{line.replace(/^[-*]\s?/, '').trim()}</li>
+              ))}
+          </ul>
+        </div>
+      );
+    });
   };
 
   return (
@@ -293,12 +340,69 @@ const ClinicalDashboard = () => {
             <button className="btn btn-secondary" onClick={clearForm}>
               <span>🔄</span><span>Clear Form</span>
             </button>
+            <button className="btn btn-secondary" onClick={openWhatIfAnalysis}>
+              <span>🔄</span><span>Open What-If Analysis</span>
+            </button>
+            <button className="btn btn-secondary" onClick={openContrastiveAnchorView}>
+              <span>🧭</span><span>Contrastive Anchor View</span>
+            </button>
+            <button className="btn btn-secondary" onClick={openConstrainedResponseSurfaceView}>
+              <span>📈</span><span>Response Surface View</span>
+            </button>
           </div>
         </div>
 
         {/* Results Section */}
         {predictions && (
           <div id="results-section">
+            {/* AI-Generated Recommendations */}
+            {predictions?.clinical_recommendations && (
+              <div
+                className="card"
+                style={{
+                  marginBottom: '1.5rem',
+                  padding: '1rem',
+                  backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                  borderRadius: '8px',
+                  borderLeft: '4px solid #4CAF50'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <span style={{ fontSize: '1.2rem', marginRight: '0.5rem' }}>🤖</span>
+                  <h3 style={{ margin: 0 }}>AI-Generated Recommendations</h3>
+                </div>
+
+                <div
+                  style={{
+                    backgroundColor: 'white',
+                    padding: '1rem',
+                    borderRadius: '6px',
+                    maxHeight: '350px',
+                    overflowY: 'auto',
+                    fontSize: '0.95rem',
+                    lineHeight: '1.6'
+                  }}
+                >
+                  {renderRecommendations(
+                    predictions.clinical_recommendations.recommendations
+                  )}
+                </div>
+
+                {predictions.clinical_recommendations.high_risk_diseases?.length > 0 && (
+                  <div
+                    style={{
+                      marginTop: '0.75rem',
+                      fontSize: '0.9rem',
+                      color: '#dc3545'
+                    }}
+                  >
+                    <strong>⚠️ High Risk:</strong>{' '}
+                    {predictions.clinical_recommendations.high_risk_diseases.join(', ')}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Risk Summary */}
             <div className="card">
               <div className="card-header">

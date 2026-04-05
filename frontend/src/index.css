@@ -401,6 +401,59 @@ font-weight: 600;
   border-left: 4px solid var(--warning);
 }
 
+.cds-details {
+  margin-top: 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #f8fbff;
+  overflow: hidden;
+}
+
+.cds-summary {
+  cursor: pointer;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #1e3a8a;
+  padding: 0.7rem 0.85rem;
+  background: #eef4ff;
+  border-bottom: 1px solid #dbe6ff;
+}
+
+.cds-report {
+  padding: 0.9rem;
+}
+
+.cds-heading {
+  margin-top: 0.75rem;
+  margin-bottom: 0.4rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.cds-heading:first-child {
+  margin-top: 0;
+}
+
+.cds-list {
+  margin: 0;
+  padding-left: 1rem;
+}
+
+.cds-list li {
+  margin: 0.25rem 0;
+  color: var(--text);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.cds-text {
+  margin: 0.35rem 0;
+  color: var(--text);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
 @media (max-width: 768px) {
   .header h1 {
     font-size: 1.5rem;
@@ -416,5 +469,14 @@ font-weight: 600;
   
   .tabs {
     overflow-x: auto;
+  }
+
+  .cds-summary {
+    font-size: 0.88rem;
+  }
+
+  .cds-list li,
+  .cds-text {
+    font-size: 0.86rem;
   }
 }
